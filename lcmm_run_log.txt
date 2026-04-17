@@ -1,0 +1,5209 @@
+Input file : traj_df_lcmm.csv 
+Output file: lcmm_class_assignments.csv 
+
+Data preview: 
+  subject_id window_90d engagement_score
+1   10000980          0               17
+2   10000980          1                4
+3   10000980          2                2
+4   10000980          3                1
+5   10000980          4                2
+6   10000980          5                2 
+  -> Saved: lcmm_data_preview.csv 
+
+Data summary: 
+    subject_id       window_90d     engagement_score
+ 10000980:    12   Min.   : 0.000   Min.   : 0.000  
+ 10001401:    12   1st Qu.: 2.000   1st Qu.: 0.000  
+ 10001884:    12   Median : 4.000   Median : 1.000  
+ 10002013:    12   Mean   : 4.758   Mean   : 2.316  
+ 10002131:    12   3rd Qu.: 8.000   3rd Qu.: 3.000  
+ 10002428:    12   Max.   :11.000   Max.   :95.000  
+ (Other) :397760                                     
+  -> Saved: lcmm_data_summary.csv 
+
+Fitting m1 (1 class)... 
+
+Fitting m2 (2 classes)... 
+
+Fitting m3 (3 classes)... 
+
+Fitting m4 (4 classes)... 
+
+Fitting m5 (5 classes)... 
+
+Writing individual model summaries... 
+
+========== Summary: m1 ==========
+ 
+Heterogenous linear mixed model 
+     fitted by maximum likelihood method 
+ 
+(function (fixed, mixture, random, subject, classmb, ng = 1, 
+    idiag = FALSE, nwg = FALSE, cor = NULL, data, B, convB = 1e-04, 
+    convL = 1e-04, convG = 1e-04, prior, pprior = NULL, maxiter = 500, 
+    subset = NULL, na.action = 1, posfix = NULL, verbose = FALSE, 
+    returndata = FALSE, var.time = NULL, partialH = FALSE, nproc = 1, 
+    clustertype = NULL) 
+{
+    ptm <- proc.time()
+    cl <- match.call()
+    args <- as.list(match.call(hlme))[-1]
+    nom.subject <- as.character(subject)
+    nom.prior <- as.character(args$prior)
+    if (!missing(mixture) & ng == 1) 
+        stop("No mixture can be specified with ng=1")
+    if (missing(mixture) & ng > 1) 
+        stop("The argument mixture has to be specified for ng > 1")
+    if (!missing(classmb) & ng == 1) 
+        stop("No classmb can be specified with ng=1")
+    if (missing(random)) 
+        random <- ~-1
+    if (missing(fixed)) 
+        stop("The argument Fixed must be specified in any model")
+    if (missing(classmb) & ng == 1) 
+        classmb <- ~-1
+    if (missing(classmb) & ng > 1) 
+        classmb <- ~1
+    if (missing(mixture)) 
+        mixture <- ~-1
+    if (ng == 1 & nwg == TRUE) 
+        stop("The argument nwg should be FALSE for ng=1")
+    if (!inherits(fixed, "formula")) 
+        stop("The argument fixed must be a formula")
+    if (!inherits(mixture, "formula")) 
+        stop("The argument mixture must be a formula")
+    if (!inherits(random, "formula")) 
+        stop("The argument random must be a formula")
+    if (!inherits(classmb, "formula")) 
+        stop("The argument classmb must be a formula")
+    if (missing(data)) {
+        stop("The argument data should be specified and defined as a data.frame")
+    }
+    if (nrow(data) == 0) 
+        stop("Data should not be empty")
+    if (missing(subject)) {
+        stop("The argument subject must be specified in any model even without random-effects")
+    }
+    if (!is.numeric(data[[subject]])) 
+        stop("The argument subject must be numeric")
+    if (!(na.action %in% c(1, 2))) 
+        stop("only 1 for 'na.omit' or 2 for 'na.fail' are required in na.action argument")
+    if (na.action == 1) {
+        na.action = na.omit
+    }
+    else {
+        na.action = na.fail
+    }
+    if (returndata == TRUE) {
+        datareturn <- data
+    }
+    else {
+        datareturn <- NULL
+    }
+    ncor0 <- 0
+    cor.type <- cl$cor[1]
+    cor.time <- cl$cor[2]
+    cor <- paste(cor.type, cor.time, sep = "-")
+    if (all.equal(cor, character(0)) != TRUE) {
+        if (substr(cor, 1, 2) == "AR") {
+            ncor0 <- 2
+        }
+        else if (substr(cor, 1, 2) == "BM") {
+            ncor0 <- 1
+        }
+        else {
+            stop("The argument cor must be of type AR or BM")
+        }
+        if (!(strsplit(cor, "-")[[1]][2] %in% colnames(data))) 
+            stop("Unable to find time variable from argument cor in data")
+        else {
+            cor.var.time <- strsplit(cor, "-")[[1]][2]
+        }
+    }
+    X0.names2 <- c("intercept")
+    int.fixed <- 0
+    int.mixture <- 0
+    int.random <- 0
+    m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+        names(match.call()), 0))]
+    m$formula <- terms(fixed)
+    m$na.action = na.action
+    m[[1]] <- as.name("model.frame")
+    m <- eval(m, sys.parent())
+    na.fixed <- attr(m, "na.action")
+    if (mixture[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(mixture)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.mixture <- attr(m, "na.action")
+    }
+    else {
+        na.mixture <- NULL
+    }
+    if (random[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(random)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.random <- attr(m, "na.action")
+    }
+    else {
+        na.random <- NULL
+    }
+    if (classmb[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(classmb)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.classmb <- attr(m, "na.action")
+    }
+    else {
+        na.classmb <- NULL
+    }
+    if (ncor0 != 0) {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- as.formula(paste(cor.var.time, 1, sep = "~"))
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.cor <- attr(m, "na.action")
+    }
+    else {
+        na.cor <- NULL
+    }
+    X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(fixed)), 
+        data = data))[-1]))
+    if (mixture[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(mixture)), 
+            data = data))))
+    if (random[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(mtemp <- get_all_vars(formula(terms(random)), 
+            data = data))))
+    if (classmb[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(classmb)), 
+            data = data))))
+    na.action <- unique(c(na.fixed, na.mixture, na.random, na.classmb, 
+        na.cor))
+    newdata <- data
+    if (!isTRUE(all.equal(as.character(cl$subset), character(0)))) {
+        cc <- cl
+        cc <- cc[c(1, which(names(cl) == "subset"))]
+        cc[[1]] <- as.name("model.frame")
+        cc$formula <- formula(paste("~", paste(colnames(data), 
+            collapse = "+")))
+        cc$data <- data
+        cc$na.action <- na.pass
+        newdata <- eval(cc)
+    }
+    if (!is.null(na.action)) {
+        newdata <- newdata[-na.action, ]
+    }
+    attributes(newdata)$terms <- NULL
+    X_fixed <- model.matrix(fixed, data = newdata)
+    if (any(colnames(X_fixed) == "(Intercept)")) {
+        ii <- which(colnames(X_fixed) == "(Intercept)")
+        colnames(X_fixed)[ii] <- "intercept"
+        int.fixed <- 1
+    }
+    nom.fixed <- inddepvar.fixed <- inddepvar.fixed.nom <- colnames(X_fixed)
+    if (int.fixed > 0) 
+        inddepvar.fixed <- inddepvar.fixed[-ii]
+    if (mixture[[2]] != "-1") {
+        X_mixture <- model.matrix(mixture, data = newdata)
+        if (any(colnames(X_mixture) == "(Intercept)")) {
+            ii <- which(colnames(X_mixture) == "(Intercept)")
+            colnames(X_mixture)[ii] <- "intercept"
+            int.mixture <- 1
+        }
+        nom.mixture <- inddepvar.mixture <- inddepvar.mixture.nom <- colnames(X_mixture)
+        if (int.mixture > 0) 
+            inddepvar.mixture <- inddepvar.mixture[-ii]
+        id.X_mixture <- 1
+    }
+    else {
+        inddepvar.mixture <- nom.mixture <- inddepvar.mixture.nom <- NULL
+        id.X_mixture <- 0
+    }
+    if (random[[2]] != "-1") {
+        X_random <- model.matrix(random, data = newdata)
+        if (any(colnames(X_random) == "(Intercept)")) {
+            ii <- which(colnames(X_random) == "(Intercept)")
+            colnames(X_random)[ii] <- "intercept"
+            int.random <- 1
+        }
+        inddepvar.random <- inddepvar.random.nom <- colnames(X_random)
+        if (int.random > 0) 
+            inddepvar.random <- inddepvar.random[-ii]
+        id.X_random <- 1
+    }
+    else {
+        inddepvar.random <- inddepvar.random.nom <- NULL
+        id.X_random <- 0
+    }
+    if (classmb[[2]] != "-1") {
+        if (attr(terms(classmb), "intercept") == 0) {
+            classmb <- paste("~", classmb[2], "+1")
+        }
+        X_classmb <- model.matrix(as.formula(classmb), data = newdata)
+        if (any(colnames(X_classmb) == "(Intercept)")) {
+            ii <- which(colnames(X_classmb) == "(Intercept)")
+            colnames(X_classmb)[ii] <- "intercept"
+        }
+        id.X_classmb <- 1
+    }
+    else {
+        id.X_classmb <- 0
+    }
+    var.exp <- NULL
+    var.exp <- c(var.exp, colnames(X_fixed))
+    if (id.X_mixture == 1) 
+        var.exp <- c(var.exp, colnames(X_mixture))
+    if (id.X_random == 1) 
+        var.exp <- c(var.exp, colnames(X_random))
+    if (id.X_classmb == 1) 
+        var.exp <- c(var.exp, colnames(X_classmb))
+    var.exp <- unique(var.exp)
+    if (ncor0 > 0) {
+        if (!(cor.var.time %in% var.exp)) {
+            var.exp <- c(var.exp, cor.var.time)
+        }
+    }
+    timeobs <- rep(0, nrow(newdata))
+    if (!is.null(var.time)) {
+        timeobs <- newdata[, var.time]
+        if (any(is.na(timeobs))) 
+            stop(paste("Cannot use", var.time, "as time variable because it contains missing data"))
+    }
+    z.fixed <- strsplit(nom.fixed, split = ":", fixed = TRUE)
+    z.fixed <- lapply(z.fixed, sort)
+    if (id.X_mixture == 1) {
+        z.mixture <- strsplit(nom.mixture, split = ":", fixed = TRUE)
+        z.mixture <- lapply(z.mixture, sort)
+    }
+    else z.mixture <- list()
+    if (!all(z.mixture %in% z.fixed)) 
+        stop("The covariates in mixture should also be included in the argument fixed")
+    Y.name <- as.character(attributes(terms(fixed))$variables[2])
+    Y0 <- newdata[, Y.name]
+    X0 <- X_fixed
+    oldnames <- colnames(X0)
+    z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+    z.X0 <- lapply(z.X0, sort)
+    if (id.X_mixture == 1) {
+        z.mixture <- strsplit(colnames(X_mixture), split = ":", 
+            fixed = TRUE)
+        z.mixture <- lapply(z.mixture, sort)
+        for (i in 1:length(colnames(X_mixture))) {
+            if (!isTRUE(z.mixture[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_mixture[, i])
+                colnames(X0) <- c(oldnames, colnames(X_mixture)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.mixture <- list()
+    }
+    if (id.X_random == 1) {
+        z.random <- strsplit(colnames(X_random), split = ":", 
+            fixed = TRUE)
+        z.random <- lapply(z.random, sort)
+        for (i in 1:length(colnames(X_random))) {
+            if (!isTRUE(z.random[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_random[, i])
+                colnames(X0) <- c(oldnames, colnames(X_random)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.random <- list()
+    }
+    if (id.X_classmb == 1) {
+        z.classmb <- strsplit(colnames(X_classmb), split = ":", 
+            fixed = TRUE)
+        z.classmb <- lapply(z.classmb, sort)
+        for (i in 1:length(colnames(X_classmb))) {
+            if (!isTRUE(z.classmb[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_classmb[, i])
+                colnames(X0) <- c(oldnames, colnames(X_classmb)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.classmb <- list()
+    }
+    if (ncor0 > 0) {
+        if (!(cor.var.time %in% colnames(X0))) {
+            X0 <- cbind(X0, newdata[, cor.var.time])
+            colnames(X0) <- c(oldnames, cor.var.time)
+        }
+    }
+    if ((any(is.na(X0)) == TRUE) | (any(is.na(Y0)) == TRUE)) 
+        stop("The data should not contain any missing value")
+    n <- dim(data)[1]
+    nom.X0 <- colnames(X0)
+    nvar.exp <- length(nom.X0)
+    IND <- newdata[, nom.subject]
+    if (missing(prior)) {
+        PRIOR <- seq(0, length = length(IND))
+    }
+    if (!missing(prior)) {
+        PRIOR <- newdata[, nom.prior]
+        PRIOR[(is.na(PRIOR))] <- 0
+    }
+    if (is.null(pprior)) {
+        pprior0 <- matrix(1, length(IND), ng)
+    }
+    else {
+        if (ng == 1) 
+            stop("pprior is only useful if ng>1")
+        if (!is.character(pprior)) 
+            stop("pprior should be a character vector")
+        if (length(pprior) != ng) 
+            stop("pprior should be of length ng")
+        if (!all(pprior %in% colnames(newdata))) 
+            stop("pprior variables should be included in data")
+        pprior0 <- newdata[, pprior]
+    }
+    ng0 <- ng
+    idiag0 <- as.integer(idiag)
+    nwg0 <- as.integer(nwg)
+    idea0 <- rep(0, nvar.exp)
+    idprob0 <- rep(0, nvar.exp)
+    idg0 <- rep(0, nvar.exp)
+    z.X0 <- strsplit(nom.X0, split = ":", fixed = TRUE)
+    z.X0 <- lapply(z.X0, sort)
+    for (i in 1:nvar.exp) {
+        idea0[i] <- z.X0[i] %in% z.random
+        idprob0[i] <- z.X0[i] %in% z.classmb
+        if ((z.X0[i] %in% z.fixed) & !(z.X0[i] %in% z.mixture)) 
+            idg0[i] <- 1
+        if ((z.X0[i] %in% z.fixed) & (z.X0[i] %in% z.mixture)) 
+            idg0[i] <- 2
+    }
+    idcor0 <- rep(0, length(z.X0))
+    if (ncor0 != 0) 
+        idcor0 <- as.numeric(nom.X0 %in% cor.var.time)
+    matYX <- cbind(IND, timeobs, PRIOR, pprior0, Y0, X0)
+    matYXord <- matYX[sort.list(matYX[, 1]), , drop = FALSE]
+    Y0 <- as.numeric(matYXord[, 4 + ng])
+    X0 <- apply(matYXord[, -c(1:(4 + ng)), drop = FALSE], 2, 
+        as.numeric)
+    IND <- matYXord[, 1]
+    timeobs <- matYXord[, 2]
+    PRIOR <- as.numeric(matYXord[, 3])
+    PRIOR <- as.integer(as.vector(PRIOR))
+    X0 <- as.numeric(as.matrix(X0))
+    Y0 <- as.numeric(as.matrix(Y0))
+    nmes0 <- as.vector(table(IND))
+    ns0 <- length(nmes0)
+    prior2 <- as.integer(rep(0, ns0))
+    prior0 <- prior2
+    if (!missing(prior)) {
+        prior0 <- PRIOR[cumsum(nmes0)]
+    }
+    INDuniq <- IND[cumsum(nmes0)]
+    seqnG <- 0:ng0
+    if (!(all(prior0 %in% seqnG))) 
+        stop("The argument prior should contain integers between 0 and ng")
+    if (!is.null(pprior)) {
+        pprior0 <- matYX[cumsum(nmes0), 3 + 1:ng, drop = FALSE]
+        if (any(is.na(pprior0))) 
+            stop("pprior contains missing values")
+    }
+    else {
+        pprior0 <- matrix(1, ns0, ng0)
+    }
+    pprior0 <- t(pprior0)
+    loglik <- as.double(0)
+    ni <- 0
+    istop <- 0
+    gconv <- rep(0, 3)
+    ppi0 <- rep(0, ns0 * ng0)
+    nv0 <- nvar.exp
+    nobs0 <- length(Y0)
+    resid_m <- rep(0, nobs0)
+    resid_ss <- rep(0, nobs0)
+    pred_m_g <- rep(0, nobs0 * ng0)
+    pred_ss_g <- rep(0, nobs0 * ng0)
+    nea0 <- sum(idea0 == 1)
+    predRE <- rep(0, nea0 * ns0 * (1 + ng0))
+    varRE <- rep(0, nea0 * (nea0 + 1)/2 * ns0)
+    Brandom <- FALSE
+    tryB <- try(as.numeric(B), silent = TRUE)
+    if (inherits(tryB, "try-error")) {
+        if (length(cl$B) == 2) {
+            if (!inherits(eval(cl$B[[2]], parent.env(environment())), 
+                "hlme")) 
+                stop("The model specified in B should be of class hlme")
+            if (as.character(cl$B[1]) != "random") 
+                stop("Please use random() to specify random initial values")
+            Brandom <- TRUE
+            B <- eval(cl$B[[2]], parent.env(environment()))
+            if (B$conv != 1) 
+                stop("Model in argument B did not converge properly")
+        }
+    }
+    b <- NULL
+    b1 <- NULL
+    NPROB <- 0
+    if (ng0 == 1 | missing(B)) {
+        NEF <- sum(idg0 != 0)
+        b1[1:NEF] <- 0
+        if (int.fixed > 0) 
+            b1[1] <- mean(Y0)
+        if (idiag0 == 1) {
+            NVC <- sum(idea0 == 1)
+            b1[(NEF + 1):(NEF + NVC)] <- 1
+        }
+        if (idiag0 == 0) {
+            kk <- sum(idea0 == 1)
+            NVC <- (kk * (kk + 1))/2
+            indice <- cumsum(1:kk)
+            bidiag <- rep(0, NVC)
+            bidiag[indice] <- 1
+            b1[(NEF + 1):(NEF + NVC)] <- bidiag
+        }
+        if (ncor0 == 1) {
+            b1[NEF + NVC + 1] <- 1
+        }
+        if (ncor0 == 2) {
+            b1[(NEF + NVC + 1):(NEF + NVC + ncor0)] <- c(0, 1)
+        }
+        b1[NEF + NVC + ncor0 + 1] <- 1
+        NPM <- length(b1)
+        NW <- 0
+        V <- rep(0, NPM * (NPM + 1)/2)
+    }
+    if (ng0 > 1) {
+        NPROB <- (sum(idprob0 == 1)) * (ng0 - 1)
+        if (NPROB > 0) 
+            b[1:NPROB] <- 0
+        NEF <- sum(idg0 == 1) + (sum(idg0 == 2)) * ng0
+        if (idiag0 == 1) 
+            NVC <- sum(idea0 == 1)
+        if (idiag0 == 0) {
+            kk <- sum(idea0 == 1)
+            NVC <- (kk * (kk + 1))/2
+        }
+        NW <- nwg0 * (ng0 - 1)
+        if (NW > 0) 
+            b[(NPROB + NEF + NVC + 1):(NPROB + NEF + NVC + NW)] <- 1
+        if (ncor0 == 1) {
+            b[NEF + NVC + NW + 1] <- 1
+        }
+        if (ncor0 == 2) {
+            b[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + NVC + 
+                NW + ncor0)] <- c(0, 1)
+        }
+        NPM <- NPROB + NEF + NVC + NW + ncor0 + 1
+        V <- rep(0, NPM * (NPM + 1)/2)
+    }
+    fix0 <- rep(0, NPM)
+    if (length(posfix)) {
+        if (any(!(posfix %in% 1:NPM))) 
+            stop("Indexes in posfix are not correct")
+        fix0[posfix] <- 1
+    }
+    if (length(posfix) == NPM) 
+        stop("No parameter to estimate")
+    Hr0 <- as.numeric(partialH)
+    pbH0 <- rep(0, NPM)
+    if (is.logical(partialH)) {
+        if (partialH) 
+            pbH0 <- rep(1, NPM)
+        if (sum(pbH0) == 0 & Hr0 == 1) 
+            stop("No partial Hessian matrix can be defined")
+    }
+    else {
+        if (!all(Hr0 %in% 1:NPM)) 
+            stop("Indexes in partialH are not correct")
+        pbH0[Hr0] <- 1
+    }
+    indexHr <- NULL
+    if (sum(pbH0) > 0) {
+        if (length(posfix)) 
+            pbH1 <- pbH0[-posfix]
+        else pbH1 <- pbH0
+        indexHr <- which(pbH1 == 1)
+    }
+    if (missing(B)) {
+        if (ng0 == 1) {
+            b <- b1
+        }
+        else {
+            stop("Please specify initial values with argument 'B'")
+        }
+    }
+    else {
+        if (is.vector(B)) {
+            if (length(B) != NPM) {
+                stop(paste("Vector B should be of length", NPM))
+            }
+            else {
+                b <- B
+                if (NVC > 0) {
+                  if (idiag0 == 1) {
+                    b[NPROB + NEF + 1:NVC] <- sqrt(b[NPROB + 
+                      NEF + 1:NVC])
+                  }
+                  else {
+                    varcov <- matrix(0, nrow = nea0, ncol = nea0)
+                    varcov[upper.tri(varcov, diag = TRUE)] <- b[NPROB + 
+                      NEF + 1:NVC]
+                    varcov <- t(varcov)
+                    varcov[upper.tri(varcov, diag = TRUE)] <- b[NPROB + 
+                      NEF + 1:NVC]
+                    ch <- chol(varcov)
+                    b[NPROB + NEF + 1:NVC] <- ch[upper.tri(ch, 
+                      diag = TRUE)]
+                  }
+                }
+            }
+        }
+        else {
+            if (!inherits(B, "hlme")) 
+                stop("B should be either a vector or an object of class hlme")
+            if (ng > 1 & B$ng == 1) {
+                NEF2 <- sum(idg0 != 0)
+                NPM2 <- NEF2 + NVC + ncor0 + 1
+                if (length(B$best) != NPM2) 
+                  stop("B is not correct")
+                if (Brandom == FALSE) {
+                  l <- 0
+                  t <- 0
+                  for (i in 1:nvar.exp) {
+                    if (idg0[i] == 1) {
+                      l <- l + 1
+                      t <- t + 1
+                      b[NPROB + t] <- B$best[l]
+                    }
+                    if (idg0[i] == 2) {
+                      l <- l + 1
+                      for (g in 1:ng) {
+                        t <- t + 1
+                        if (B$conv == 1) 
+                          b[NPROB + t] <- B$best[l] + (g - (ng + 
+                            1)/2) * sqrt(B$V[l * (l + 1)/2])
+                        else b[NPROB + t] <- B$best[l] + (g - 
+                          (ng + 1)/2) * B$best[l]
+                      }
+                    }
+                  }
+                  if (NVC > 0) {
+                    if (idiag == TRUE) {
+                      b[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- B$cholesky[(1:nea0) * 
+                        (2:(nea0 + 1))/2]
+                    }
+                    else {
+                      b[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- B$cholesky
+                    }
+                  }
+                  if (ncor0 > 0) {
+                    b[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + 
+                      NVC + NW + ncor0)] <- B$best[(NPM2 - ncor0):(NPM2 - 
+                      1)]
+                  }
+                  b[NPROB + NEF + NVC + NW + ncor0 + 1] <- B$best[NPM2]
+                }
+                else {
+                  bb <- rep(0, NPM - NPROB - NW)
+                  vbb <- matrix(0, NPM - NPROB - NW, NPM - NPROB - 
+                    NW)
+                  VB <- matrix(0, NPM2, NPM2)
+                  VB[upper.tri(VB, diag = TRUE)] <- B$V
+                  VB <- t(VB)
+                  VB[upper.tri(VB, diag = TRUE)] <- B$V
+                  nbg <- idg0[which(idg0 != 0)]
+                  nbg[which(nbg == 2)] <- ng
+                  nbgnef <- unlist(sapply(nbg, function(k) if (k > 
+                    1) 
+                    rep(2, k)
+                  else k))
+                  vbb[which(nbgnef == 1), setdiff(1:ncol(vbb), 
+                    which(nbgnef != 1))] <- VB[which(nbg == 1), 
+                    setdiff(1:ncol(VB), which(nbg != 1))]
+                  vbb[(NEF + 1):nrow(vbb), (NEF + 1):ncol(vbb)] <- VB[(NEF2 + 
+                    1):nrow(VB), (NEF2 + 1):ncol(VB)]
+                  l <- 0
+                  t <- 0
+                  for (i in 1:nvar.exp) {
+                    if (idg0[i] == 1) {
+                      l <- l + 1
+                      t <- t + 1
+                      bb[t] <- B$best[l]
+                    }
+                    if (idg0[i] == 2) {
+                      l <- l + 1
+                      for (g in 1:ng) {
+                        t <- t + 1
+                        bb[t] <- B$best[l]
+                        vbb[t, t] <- VB[l, l]
+                      }
+                    }
+                  }
+                  if (NVC > 0) {
+                    if (idiag == TRUE) {
+                      bb[NEF + 1:NVC] <- B$cholesky[(1:nea0) * 
+                        (2:(nea0 + 1))/2]
+                    }
+                    else {
+                      bb[NEF + 1:NVC] <- B$cholesky
+                    }
+                  }
+                  if (ncor0 > 0) {
+                    bb[NEF + NVC + 1:ncor0] <- B$best[(NPM2 - 
+                      ncor0):(NPM2 - 1)]
+                  }
+                  bb[NEF + NVC + ncor0 + 1] <- B$best[NPM2]
+                  up <- vbb[upper.tri(vbb, diag = TRUE)]
+                  vbb <- t(vbb)
+                  vbb[upper.tri(vbb, diag = TRUE)] <- up
+                  b[c((NPROB + 1):(NPROB + NEF + NVC), (NPROB + 
+                    NEF + NVC + NW + 1):NPM)] <- rmvnorm(n = 1, 
+                    mean = bb, sigma = vbb)
+                  if (NPROB > 0) 
+                    b[1:NPROB] <- 0
+                  if (NW > 0) 
+                    b[NPROB + NEF + NVC + 1:NW] <- 1
+                }
+            }
+        }
+    }
+    NEF2 <- sum(idg0 != 0)
+    NPM2 <- NEF2 + NVC + ncor0 + 1
+    wRandom <- rep(0, NPM)
+    b0Random <- NULL
+    if (NPROB > 0) 
+        b0Random <- rep(0, ng - 1)
+    l <- 0
+    t <- 0
+    for (i in 1:nvar.exp) {
+        if (idg0[i] == 1) {
+            l <- l + 1
+            t <- t + 1
+            wRandom[NPROB + t] <- l
+        }
+        if (idg0[i] == 2) {
+            l <- l + 1
+            for (g in 1:ng) {
+                t <- t + 1
+                wRandom[NPROB + t] <- l
+            }
+        }
+    }
+    if (NVC > 0) {
+        wRandom[NPROB + NEF + 1:NVC] <- NEF2 + 1:NVC
+    }
+    if (NW > 0) {
+        b0Random <- c(b0Random, rep(1, ng - 1))
+    }
+    if (ncor0 > 0) {
+        wRandom[NPROB + NEF + NVC + NW + 1:ncor0] <- NEF2 + NVC + 
+            1:ncor0
+    }
+    wRandom[NPM] <- NPM2
+    if (ng0 >= 2 & NPROB > 0) {
+        nom <- rep(nom.X0[idprob0 == 1], each = ng0 - 1)
+        nom1 <- paste(nom, " class", c(1:(ng0 - 1)), sep = "")
+        names(b)[1:NPROB] <- nom1
+    }
+    if (ng0 == 1) 
+        names(b)[1:NEF] <- nom.X0[idg0 != 0]
+    if (ng0 > 1) {
+        nom1 <- NULL
+        for (i in 1:nvar.exp) {
+            if (idg0[i] == 2) {
+                nom <- paste(nom.X0[i], " class", c(1:ng0), sep = "")
+                nom1 <- cbind(nom1, t(nom))
+            }
+            if (idg0[i] == 1) 
+                nom1 <- cbind(nom1, nom.X0[i])
+        }
+        names(b)[(NPROB + 1):(NPROB + NEF)] <- nom1
+    }
+    if (NVC != 0) 
+        names(b)[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- paste("varcov", 
+            c(1:(NVC)))
+    if (NW != 0) 
+        names(b)[(NPROB + NEF + NVC + 1):(NPROB + NEF + NVC + 
+            NW)] <- paste("varprop class", c(1:(ng0 - 1)))
+    names(b)[NPM] <- "stderr"
+    if (ncor0 != 0) {
+        names(b)[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + 
+            NVC + NW + ncor0)] <- paste("cor", 1:ncor0, sep = "")
+    }
+    names_best <- names(b)
+    N <- NULL
+    N[1] <- NPROB
+    N[2] <- NEF
+    N[3] <- NVC
+    N[4] <- NW
+    N[5] <- ncor0
+    idiag <- as.integer(idiag0)
+    idea <- as.integer(idea0)
+    nv <- as.integer(nv0)
+    nfix <- sum(fix0)
+    bfix <- 0
+    if (nfix > 0) {
+        bfix <- b[which(fix0 == 1)]
+        b <- b[which(fix0 == 0)]
+        NPM <- NPM - nfix
+    }
+    if (maxiter == 0) {
+        vrais <- loglikhlme(b, Y0, X0, prior0, pprior0, idprob0, 
+            idea0, idg0, idcor0, ns0, ng0, nv0, nobs0, nea0, 
+            nmes0, idiag0, nwg0, ncor0, NPM, fix0, nfix, bfix)
+        out <- list(conv = 2, V = rep(NA, NPM * (NPM + 1)/2), 
+            best = b, ppi2 = rep(NA, ns0 * ng0), predRE = rep(NA, 
+                ns0 * nea0 * (1 + ng0)), varRE = rep(NA, ns0 * 
+                nea0 * (nea0 + 1)/2), resid_m = rep(NA, nobs0), 
+            resid_ss = rep(NA, nobs0), pred_m_g = rep(NA, nobs0 * 
+                ng0), pred_ss_g = rep(NA, nobs0 * ng0), gconv = rep(NA, 
+                3), niter = 0, loglik = vrais)
+    }
+    else {
+        res <- mla(b = b, m = length(b), fn = loglikhlme, clustertype = clustertype, 
+            .packages = NULL, epsa = convB, epsb = convL, epsd = convG, 
+            partialH = indexHr, digits = 8, print.info = verbose, 
+            blinding = FALSE, multipleTry = 25, file = "", nproc = nproc, 
+            maxiter = maxiter, minimize = FALSE, Y0 = Y0, X0 = X0, 
+            prior0 = prior0, pprior0 = pprior0, idprob0 = idprob0, 
+            idea0 = idea0, idg0 = idg0, idcor0 = idcor0, ns0 = ns0, 
+            ng0 = ng0, nv0 = nv0, nobs = nobs0, nea0 = nea0, 
+            nmes0 = nmes0, idiag = idiag0, nwg0 = nwg0, ncor0 = ncor0, 
+            npm0 = NPM, fix0 = fix0, nfix0 = nfix, bfix0 = bfix)
+        out <- list(conv = res$istop, V = res$v, best = res$b, 
+            ppi2 = rep(NA, ns0 * ng0), predRE = rep(NA, ns0 * 
+                nea0 * (1 + ng0)), varRE = rep(NA, ns0 * nea0 * 
+                (nea0 + 1)/2), resid_m = rep(NA, nobs0), resid_ss = rep(NA, 
+                nobs0), pred_m_g = rep(NA, nobs0 * ng0), pred_ss_g = rep(NA, 
+                nobs0 * ng0), gconv = c(res$ca, res$cb, res$rdm), 
+            niter = res$ni, loglik = res$fn.value)
+    }
+    if (out$conv %in% c(1, 2, 3)) {
+        estim0 <- 0
+        ll <- 0
+        ppi0 <- rep(0, ns0 * ng0)
+        resid_m <- rep(0, nobs0)
+        resid_ss <- rep(0, nobs0)
+        pred_m_g <- rep(0, nobs0 * ng0)
+        pred_ss_g <- rep(0, nobs0 * ng0)
+        predRE <- rep(0, ns0 * nea0 * (1 + ng0))
+        varRE <- rep(0, ns0 * nea0 * (nea0 + 1)/2)
+        post <- .Fortran(C_loglikhlme, as.double(Y0), as.double(X0), 
+            as.integer(prior0), as.double(pprior0), as.integer(idprob0), 
+            as.integer(idea0), as.integer(idg0), as.integer(idcor0), 
+            as.integer(ns0), as.integer(ng0), as.integer(nv0), 
+            as.integer(nobs0), as.integer(nea0), as.integer(nmes0), 
+            as.integer(idiag0), as.integer(nwg0), as.integer(ncor0), 
+            as.integer(NPM), as.double(out$best), ppi = as.double(ppi0), 
+            resid_m = as.double(resid_m), resid_ss = as.double(resid_ss), 
+            pred_m_g = as.double(pred_m_g), pred_ss_g = as.double(pred_ss_g), 
+            predRE = as.double(predRE), varRE = as.double(varRE), 
+            as.integer(fix0), as.integer(nfix), as.double(bfix), 
+            as.integer(estim0), loglik = as.double(ll))
+        out$ppi2 <- post$ppi
+        out$predRE <- post$predRE
+        out$varRE <- post$varRE
+        out$resid_m <- post$resid_m
+        out$resid_ss <- post$resid_ss
+        out$pred_m_g <- post$pred_m_g
+        out$pred_ss_g <- post$pred_ss_g
+    }
+    best <- rep(NA, length(fix0))
+    best[which(fix0 == 0)] <- out$best
+    best[which(fix0 == 1)] <- bfix
+    names(best) <- names_best
+    out$best <- best
+    NPM <- NPM + nfix
+    if (length(posfix)) {
+        if (out$conv == 3) {
+            mr <- NPM - sum(pbH0) - length(posfix)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(NA, NPM, NPM)
+            V[setdiff(1:NPM, c(which(pbH0 == 1), posfix)), setdiff(1:NPM, 
+                c(which(pbH0 == 1), posfix))] <- Vr
+            V[, posfix] <- 0
+            V[posfix, ] <- 0
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+        else {
+            mr <- NPM - length(posfix)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(0, NPM, NPM)
+            V[setdiff(1:NPM, posfix), setdiff(1:NPM, posfix)] <- Vr
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+    }
+    else {
+        if (out$conv == 3) {
+            mr <- NPM - sum(pbH0)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(NA, NPM, NPM)
+            V[setdiff(1:NPM, which(pbH0 == 1)), setdiff(1:NPM, 
+                which(pbH0 == 1))] <- Vr
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+        else {
+            V <- out$V
+        }
+    }
+    Cholesky <- rep(0, (nea0 * (nea0 + 1)/2))
+    if (idiag0 == 0 & NVC > 0) {
+        Cholesky[1:NVC] <- out$best[(NPROB + NEF + 1):(NPROB + 
+            NEF + NVC)]
+        U <- matrix(0, nrow = nea0, ncol = nea0)
+        U[upper.tri(U, diag = TRUE)] <- Cholesky[1:NVC]
+        z <- t(U) %*% U
+        out$best[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- z[upper.tri(z, 
+            diag = TRUE)]
+    }
+    if (idiag0 == 1 & NVC > 0) {
+        id <- 1:nea0
+        indice <- rep(id + id * (id - 1)/2)
+        Cholesky[indice] <- out$best[(NPROB + NEF + 1):(NPROB + 
+            NEF + nea0)]
+        out$best[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- out$best[(NPROB + 
+            NEF + 1):(NPROB + NEF + NVC)]^2
+    }
+    predRE <- NULL
+    classpredRE <- NULL
+    if (nea0 > 0) {
+        namesRE <- nom.X0[idea0 != 0]
+        predRE <- matrix(out$predRE[1:(ns0 * nea0)], ncol = nea0, 
+            byrow = TRUE)
+        predRE <- data.frame(INDuniq, predRE)
+        colnames(predRE) <- c(nom.subject, namesRE)
+        classpredRE <- matrix(out$predRE[-c(1:(ns0 * nea0))], 
+            ncol = nea0, byrow = TRUE)
+        classpredRE <- data.frame(rep(INDuniq, each = ng0), rep(1:ng0, 
+            ns0), classpredRE)
+        colnames(classpredRE) <- c(nom.subject, "class", namesRE)
+    }
+    if (ng0 > 1) {
+        ppi <- matrix(out$ppi2, ncol = ng0, byrow = TRUE)
+    }
+    else {
+        ppi <- matrix(rep(1, ns0), ncol = ng0)
+    }
+    chooseClass <- function(ppi) {
+        res <- which.max(ppi)
+        if (!length(res)) 
+            res <- 0
+        return(res)
+    }
+    classif <- apply(ppi, 1, chooseClass)
+    if (any(!is.finite(ppi))) {
+        classif <- rep(NA, ns0)
+        iok <- which(is.finite(ppi[, 1]))
+        classif[iok] <- apply(ppi[iok, , drop = FALSE], 1, which.max)
+    }
+    ppi <- data.frame(INDuniq, classif, ppi)
+    temp <- paste("prob", 1:ng0, sep = "")
+    colnames(ppi) <- c(nom.subject, "class", temp)
+    rownames(ppi) <- 1:ns0
+    pred_m_g <- matrix(out$pred_m_g, nrow = nobs0)
+    pred_ss_g <- matrix(out$pred_ss_g, nrow = nobs0)
+    pred_m <- Y0 - out$resid_m
+    pred_ss <- Y0 - out$resid_ss
+    pred <- data.frame(IND, pred_m, out$resid_m, pred_ss, out$resid_ss, 
+        Y0, pred_m_g, pred_ss_g)
+    temp <- paste("pred_m", 1:ng0, sep = "")
+    temp1 <- paste("pred_ss", 1:ng0, sep = "")
+    colnames(pred) <- c(nom.subject, "pred_m", "resid_m", "pred_ss", 
+        "resid_ss", "obs", temp, temp1)
+    if (!is.null(var.time)) {
+        pred <- data.frame(IND, pred_m, out$resid_m, pred_ss, 
+            out$resid_ss, Y0, pred_m_g, pred_ss_g, timeobs)
+        colnames(pred) <- c(nom.subject, "pred_m", "resid_m", 
+            "pred_ss", "resid_ss", "obs", temp, temp1, var.time)
+    }
+    if (!("intercept" %in% nom.X0)) 
+        X0.names2 <- X0.names2[-1]
+    levelsdata <- vector("list", length(X0.names2))
+    levelsfixed <- vector("list", length(X0.names2))
+    levelsrandom <- vector("list", length(X0.names2))
+    levelsmixture <- vector("list", length(X0.names2))
+    levelsclassmb <- vector("list", length(X0.names2))
+    names(levelsdata) <- X0.names2
+    names(levelsfixed) <- X0.names2
+    names(levelsrandom) <- X0.names2
+    names(levelsmixture) <- X0.names2
+    names(levelsclassmb) <- X0.names2
+    for (v in X0.names2) {
+        if (v == "intercept") 
+            next
+        if (is.factor(data[, v])) {
+            levelsdata[[v]] <- levels(data[, v])
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            fixed))) {
+            levelsfixed[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            random))) {
+            levelsrandom[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            mixture))) {
+            levelsmixture[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            classmb))) {
+            levelsclassmb[[v]] <- levels(as.factor(data[, v]))
+        }
+    }
+    levels <- list(levelsdata = levelsdata, levelsfixed = levelsfixed, 
+        levelsrandom = levelsrandom, levelsmixture = levelsmixture, 
+        levelsclassmb = levelsclassmb)
+    cost <- proc.time() - ptm
+    res <- list(ns = ns0, ng = ng0, idea0 = idea0, idprob0 = idprob0, 
+        idg0 = idg0, idcor0 = idcor0, loglik = out$loglik, best = out$best, 
+        V = V, gconv = out$gconv, conv = out$conv, call = cl, 
+        niter = out$niter, N = N, idiag = idiag0, pred = pred, 
+        pprob = ppi, predRE = predRE, classpredRE = classpredRE, 
+        varRE = out$varRE, Xnames = nom.X0, Xnames2 = X0.names2, 
+        cholesky = Cholesky, na.action = na.action, AIC = 2 * 
+            (length(out$best) - length(posfix) - out$loglik), 
+        BIC = (length(out$best) - length(posfix)) * log(ns0) - 
+            2 * out$loglik, data = datareturn, wRandom = wRandom, 
+        b0Random = b0Random, levels = levels, var.time = var.time, 
+        runtime = cost[3])
+    class(res) <- c("hlme")
+    if (verbose == TRUE) 
+        cat("The program took", round(cost[3], 2), "seconds \n")
+    res
+})(fixed = engagement_score ~ window_90d + I(window_90d^2), random = ~window_90d, 
+    subject = "subject_id", ng = 1, verbose = TRUE)
+ 
+Statistical Model: 
+     Dataset: NULL 
+     Number of subjects: 48942 
+     Number of observations: 397832 
+     Number of latent classes: 1 
+     Number of parameters: 7  
+ 
+Iteration process: 
+     Convergence criteria satisfied 
+     Number of iterations:  18 
+     Convergence criteria: parameters= 2.8e-09 
+                         : likelihood= 4.4e-06 
+                         : second derivatives= 4.3e-10 
+ 
+Goodness-of-fit statistics: 
+     maximum log-likelihood: -1059786.18  
+     AIC: 2119586.37  
+     BIC: 2119647.96  
+ 
+ 
+Maximum Likelihood Estimates: 
+ 
+Fixed effects in the longitudinal model:
+
+                    coef      Se     Wald p-value
+intercept        5.00007 0.02040  245.113 0.00000
+window_90d      -1.03886 0.00539 -192.721 0.00000
+I(window_90d^2)  0.07400 0.00047  155.958 0.00000
+
+
+Variance-covariance matrix of the random-effects:
+           intercept window_90d
+intercept    14.7532           
+window_90d   -1.3457    0.16094
+
+                             coef      Se
+Residual standard error:  2.99503 0.00384
+ 
+
+========== Summary: m2 ==========
+ 
+Heterogenous linear mixed model 
+     fitted by maximum likelihood method 
+ 
+(function (fixed, mixture, random, subject, classmb, ng = 1, 
+    idiag = FALSE, nwg = FALSE, cor = NULL, data, B, convB = 1e-04, 
+    convL = 1e-04, convG = 1e-04, prior, pprior = NULL, maxiter = 500, 
+    subset = NULL, na.action = 1, posfix = NULL, verbose = FALSE, 
+    returndata = FALSE, var.time = NULL, partialH = FALSE, nproc = 1, 
+    clustertype = NULL) 
+{
+    ptm <- proc.time()
+    cl <- match.call()
+    args <- as.list(match.call(hlme))[-1]
+    nom.subject <- as.character(subject)
+    nom.prior <- as.character(args$prior)
+    if (!missing(mixture) & ng == 1) 
+        stop("No mixture can be specified with ng=1")
+    if (missing(mixture) & ng > 1) 
+        stop("The argument mixture has to be specified for ng > 1")
+    if (!missing(classmb) & ng == 1) 
+        stop("No classmb can be specified with ng=1")
+    if (missing(random)) 
+        random <- ~-1
+    if (missing(fixed)) 
+        stop("The argument Fixed must be specified in any model")
+    if (missing(classmb) & ng == 1) 
+        classmb <- ~-1
+    if (missing(classmb) & ng > 1) 
+        classmb <- ~1
+    if (missing(mixture)) 
+        mixture <- ~-1
+    if (ng == 1 & nwg == TRUE) 
+        stop("The argument nwg should be FALSE for ng=1")
+    if (!inherits(fixed, "formula")) 
+        stop("The argument fixed must be a formula")
+    if (!inherits(mixture, "formula")) 
+        stop("The argument mixture must be a formula")
+    if (!inherits(random, "formula")) 
+        stop("The argument random must be a formula")
+    if (!inherits(classmb, "formula")) 
+        stop("The argument classmb must be a formula")
+    if (missing(data)) {
+        stop("The argument data should be specified and defined as a data.frame")
+    }
+    if (nrow(data) == 0) 
+        stop("Data should not be empty")
+    if (missing(subject)) {
+        stop("The argument subject must be specified in any model even without random-effects")
+    }
+    if (!is.numeric(data[[subject]])) 
+        stop("The argument subject must be numeric")
+    if (!(na.action %in% c(1, 2))) 
+        stop("only 1 for 'na.omit' or 2 for 'na.fail' are required in na.action argument")
+    if (na.action == 1) {
+        na.action = na.omit
+    }
+    else {
+        na.action = na.fail
+    }
+    if (returndata == TRUE) {
+        datareturn <- data
+    }
+    else {
+        datareturn <- NULL
+    }
+    ncor0 <- 0
+    cor.type <- cl$cor[1]
+    cor.time <- cl$cor[2]
+    cor <- paste(cor.type, cor.time, sep = "-")
+    if (all.equal(cor, character(0)) != TRUE) {
+        if (substr(cor, 1, 2) == "AR") {
+            ncor0 <- 2
+        }
+        else if (substr(cor, 1, 2) == "BM") {
+            ncor0 <- 1
+        }
+        else {
+            stop("The argument cor must be of type AR or BM")
+        }
+        if (!(strsplit(cor, "-")[[1]][2] %in% colnames(data))) 
+            stop("Unable to find time variable from argument cor in data")
+        else {
+            cor.var.time <- strsplit(cor, "-")[[1]][2]
+        }
+    }
+    X0.names2 <- c("intercept")
+    int.fixed <- 0
+    int.mixture <- 0
+    int.random <- 0
+    m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+        names(match.call()), 0))]
+    m$formula <- terms(fixed)
+    m$na.action = na.action
+    m[[1]] <- as.name("model.frame")
+    m <- eval(m, sys.parent())
+    na.fixed <- attr(m, "na.action")
+    if (mixture[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(mixture)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.mixture <- attr(m, "na.action")
+    }
+    else {
+        na.mixture <- NULL
+    }
+    if (random[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(random)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.random <- attr(m, "na.action")
+    }
+    else {
+        na.random <- NULL
+    }
+    if (classmb[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(classmb)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.classmb <- attr(m, "na.action")
+    }
+    else {
+        na.classmb <- NULL
+    }
+    if (ncor0 != 0) {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- as.formula(paste(cor.var.time, 1, sep = "~"))
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.cor <- attr(m, "na.action")
+    }
+    else {
+        na.cor <- NULL
+    }
+    X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(fixed)), 
+        data = data))[-1]))
+    if (mixture[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(mixture)), 
+            data = data))))
+    if (random[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(mtemp <- get_all_vars(formula(terms(random)), 
+            data = data))))
+    if (classmb[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(classmb)), 
+            data = data))))
+    na.action <- unique(c(na.fixed, na.mixture, na.random, na.classmb, 
+        na.cor))
+    newdata <- data
+    if (!isTRUE(all.equal(as.character(cl$subset), character(0)))) {
+        cc <- cl
+        cc <- cc[c(1, which(names(cl) == "subset"))]
+        cc[[1]] <- as.name("model.frame")
+        cc$formula <- formula(paste("~", paste(colnames(data), 
+            collapse = "+")))
+        cc$data <- data
+        cc$na.action <- na.pass
+        newdata <- eval(cc)
+    }
+    if (!is.null(na.action)) {
+        newdata <- newdata[-na.action, ]
+    }
+    attributes(newdata)$terms <- NULL
+    X_fixed <- model.matrix(fixed, data = newdata)
+    if (any(colnames(X_fixed) == "(Intercept)")) {
+        ii <- which(colnames(X_fixed) == "(Intercept)")
+        colnames(X_fixed)[ii] <- "intercept"
+        int.fixed <- 1
+    }
+    nom.fixed <- inddepvar.fixed <- inddepvar.fixed.nom <- colnames(X_fixed)
+    if (int.fixed > 0) 
+        inddepvar.fixed <- inddepvar.fixed[-ii]
+    if (mixture[[2]] != "-1") {
+        X_mixture <- model.matrix(mixture, data = newdata)
+        if (any(colnames(X_mixture) == "(Intercept)")) {
+            ii <- which(colnames(X_mixture) == "(Intercept)")
+            colnames(X_mixture)[ii] <- "intercept"
+            int.mixture <- 1
+        }
+        nom.mixture <- inddepvar.mixture <- inddepvar.mixture.nom <- colnames(X_mixture)
+        if (int.mixture > 0) 
+            inddepvar.mixture <- inddepvar.mixture[-ii]
+        id.X_mixture <- 1
+    }
+    else {
+        inddepvar.mixture <- nom.mixture <- inddepvar.mixture.nom <- NULL
+        id.X_mixture <- 0
+    }
+    if (random[[2]] != "-1") {
+        X_random <- model.matrix(random, data = newdata)
+        if (any(colnames(X_random) == "(Intercept)")) {
+            ii <- which(colnames(X_random) == "(Intercept)")
+            colnames(X_random)[ii] <- "intercept"
+            int.random <- 1
+        }
+        inddepvar.random <- inddepvar.random.nom <- colnames(X_random)
+        if (int.random > 0) 
+            inddepvar.random <- inddepvar.random[-ii]
+        id.X_random <- 1
+    }
+    else {
+        inddepvar.random <- inddepvar.random.nom <- NULL
+        id.X_random <- 0
+    }
+    if (classmb[[2]] != "-1") {
+        if (attr(terms(classmb), "intercept") == 0) {
+            classmb <- paste("~", classmb[2], "+1")
+        }
+        X_classmb <- model.matrix(as.formula(classmb), data = newdata)
+        if (any(colnames(X_classmb) == "(Intercept)")) {
+            ii <- which(colnames(X_classmb) == "(Intercept)")
+            colnames(X_classmb)[ii] <- "intercept"
+        }
+        id.X_classmb <- 1
+    }
+    else {
+        id.X_classmb <- 0
+    }
+    var.exp <- NULL
+    var.exp <- c(var.exp, colnames(X_fixed))
+    if (id.X_mixture == 1) 
+        var.exp <- c(var.exp, colnames(X_mixture))
+    if (id.X_random == 1) 
+        var.exp <- c(var.exp, colnames(X_random))
+    if (id.X_classmb == 1) 
+        var.exp <- c(var.exp, colnames(X_classmb))
+    var.exp <- unique(var.exp)
+    if (ncor0 > 0) {
+        if (!(cor.var.time %in% var.exp)) {
+            var.exp <- c(var.exp, cor.var.time)
+        }
+    }
+    timeobs <- rep(0, nrow(newdata))
+    if (!is.null(var.time)) {
+        timeobs <- newdata[, var.time]
+        if (any(is.na(timeobs))) 
+            stop(paste("Cannot use", var.time, "as time variable because it contains missing data"))
+    }
+    z.fixed <- strsplit(nom.fixed, split = ":", fixed = TRUE)
+    z.fixed <- lapply(z.fixed, sort)
+    if (id.X_mixture == 1) {
+        z.mixture <- strsplit(nom.mixture, split = ":", fixed = TRUE)
+        z.mixture <- lapply(z.mixture, sort)
+    }
+    else z.mixture <- list()
+    if (!all(z.mixture %in% z.fixed)) 
+        stop("The covariates in mixture should also be included in the argument fixed")
+    Y.name <- as.character(attributes(terms(fixed))$variables[2])
+    Y0 <- newdata[, Y.name]
+    X0 <- X_fixed
+    oldnames <- colnames(X0)
+    z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+    z.X0 <- lapply(z.X0, sort)
+    if (id.X_mixture == 1) {
+        z.mixture <- strsplit(colnames(X_mixture), split = ":", 
+            fixed = TRUE)
+        z.mixture <- lapply(z.mixture, sort)
+        for (i in 1:length(colnames(X_mixture))) {
+            if (!isTRUE(z.mixture[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_mixture[, i])
+                colnames(X0) <- c(oldnames, colnames(X_mixture)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.mixture <- list()
+    }
+    if (id.X_random == 1) {
+        z.random <- strsplit(colnames(X_random), split = ":", 
+            fixed = TRUE)
+        z.random <- lapply(z.random, sort)
+        for (i in 1:length(colnames(X_random))) {
+            if (!isTRUE(z.random[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_random[, i])
+                colnames(X0) <- c(oldnames, colnames(X_random)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.random <- list()
+    }
+    if (id.X_classmb == 1) {
+        z.classmb <- strsplit(colnames(X_classmb), split = ":", 
+            fixed = TRUE)
+        z.classmb <- lapply(z.classmb, sort)
+        for (i in 1:length(colnames(X_classmb))) {
+            if (!isTRUE(z.classmb[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_classmb[, i])
+                colnames(X0) <- c(oldnames, colnames(X_classmb)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.classmb <- list()
+    }
+    if (ncor0 > 0) {
+        if (!(cor.var.time %in% colnames(X0))) {
+            X0 <- cbind(X0, newdata[, cor.var.time])
+            colnames(X0) <- c(oldnames, cor.var.time)
+        }
+    }
+    if ((any(is.na(X0)) == TRUE) | (any(is.na(Y0)) == TRUE)) 
+        stop("The data should not contain any missing value")
+    n <- dim(data)[1]
+    nom.X0 <- colnames(X0)
+    nvar.exp <- length(nom.X0)
+    IND <- newdata[, nom.subject]
+    if (missing(prior)) {
+        PRIOR <- seq(0, length = length(IND))
+    }
+    if (!missing(prior)) {
+        PRIOR <- newdata[, nom.prior]
+        PRIOR[(is.na(PRIOR))] <- 0
+    }
+    if (is.null(pprior)) {
+        pprior0 <- matrix(1, length(IND), ng)
+    }
+    else {
+        if (ng == 1) 
+            stop("pprior is only useful if ng>1")
+        if (!is.character(pprior)) 
+            stop("pprior should be a character vector")
+        if (length(pprior) != ng) 
+            stop("pprior should be of length ng")
+        if (!all(pprior %in% colnames(newdata))) 
+            stop("pprior variables should be included in data")
+        pprior0 <- newdata[, pprior]
+    }
+    ng0 <- ng
+    idiag0 <- as.integer(idiag)
+    nwg0 <- as.integer(nwg)
+    idea0 <- rep(0, nvar.exp)
+    idprob0 <- rep(0, nvar.exp)
+    idg0 <- rep(0, nvar.exp)
+    z.X0 <- strsplit(nom.X0, split = ":", fixed = TRUE)
+    z.X0 <- lapply(z.X0, sort)
+    for (i in 1:nvar.exp) {
+        idea0[i] <- z.X0[i] %in% z.random
+        idprob0[i] <- z.X0[i] %in% z.classmb
+        if ((z.X0[i] %in% z.fixed) & !(z.X0[i] %in% z.mixture)) 
+            idg0[i] <- 1
+        if ((z.X0[i] %in% z.fixed) & (z.X0[i] %in% z.mixture)) 
+            idg0[i] <- 2
+    }
+    idcor0 <- rep(0, length(z.X0))
+    if (ncor0 != 0) 
+        idcor0 <- as.numeric(nom.X0 %in% cor.var.time)
+    matYX <- cbind(IND, timeobs, PRIOR, pprior0, Y0, X0)
+    matYXord <- matYX[sort.list(matYX[, 1]), , drop = FALSE]
+    Y0 <- as.numeric(matYXord[, 4 + ng])
+    X0 <- apply(matYXord[, -c(1:(4 + ng)), drop = FALSE], 2, 
+        as.numeric)
+    IND <- matYXord[, 1]
+    timeobs <- matYXord[, 2]
+    PRIOR <- as.numeric(matYXord[, 3])
+    PRIOR <- as.integer(as.vector(PRIOR))
+    X0 <- as.numeric(as.matrix(X0))
+    Y0 <- as.numeric(as.matrix(Y0))
+    nmes0 <- as.vector(table(IND))
+    ns0 <- length(nmes0)
+    prior2 <- as.integer(rep(0, ns0))
+    prior0 <- prior2
+    if (!missing(prior)) {
+        prior0 <- PRIOR[cumsum(nmes0)]
+    }
+    INDuniq <- IND[cumsum(nmes0)]
+    seqnG <- 0:ng0
+    if (!(all(prior0 %in% seqnG))) 
+        stop("The argument prior should contain integers between 0 and ng")
+    if (!is.null(pprior)) {
+        pprior0 <- matYX[cumsum(nmes0), 3 + 1:ng, drop = FALSE]
+        if (any(is.na(pprior0))) 
+            stop("pprior contains missing values")
+    }
+    else {
+        pprior0 <- matrix(1, ns0, ng0)
+    }
+    pprior0 <- t(pprior0)
+    loglik <- as.double(0)
+    ni <- 0
+    istop <- 0
+    gconv <- rep(0, 3)
+    ppi0 <- rep(0, ns0 * ng0)
+    nv0 <- nvar.exp
+    nobs0 <- length(Y0)
+    resid_m <- rep(0, nobs0)
+    resid_ss <- rep(0, nobs0)
+    pred_m_g <- rep(0, nobs0 * ng0)
+    pred_ss_g <- rep(0, nobs0 * ng0)
+    nea0 <- sum(idea0 == 1)
+    predRE <- rep(0, nea0 * ns0 * (1 + ng0))
+    varRE <- rep(0, nea0 * (nea0 + 1)/2 * ns0)
+    Brandom <- FALSE
+    tryB <- try(as.numeric(B), silent = TRUE)
+    if (inherits(tryB, "try-error")) {
+        if (length(cl$B) == 2) {
+            if (!inherits(eval(cl$B[[2]], parent.env(environment())), 
+                "hlme")) 
+                stop("The model specified in B should be of class hlme")
+            if (as.character(cl$B[1]) != "random") 
+                stop("Please use random() to specify random initial values")
+            Brandom <- TRUE
+            B <- eval(cl$B[[2]], parent.env(environment()))
+            if (B$conv != 1) 
+                stop("Model in argument B did not converge properly")
+        }
+    }
+    b <- NULL
+    b1 <- NULL
+    NPROB <- 0
+    if (ng0 == 1 | missing(B)) {
+        NEF <- sum(idg0 != 0)
+        b1[1:NEF] <- 0
+        if (int.fixed > 0) 
+            b1[1] <- mean(Y0)
+        if (idiag0 == 1) {
+            NVC <- sum(idea0 == 1)
+            b1[(NEF + 1):(NEF + NVC)] <- 1
+        }
+        if (idiag0 == 0) {
+            kk <- sum(idea0 == 1)
+            NVC <- (kk * (kk + 1))/2
+            indice <- cumsum(1:kk)
+            bidiag <- rep(0, NVC)
+            bidiag[indice] <- 1
+            b1[(NEF + 1):(NEF + NVC)] <- bidiag
+        }
+        if (ncor0 == 1) {
+            b1[NEF + NVC + 1] <- 1
+        }
+        if (ncor0 == 2) {
+            b1[(NEF + NVC + 1):(NEF + NVC + ncor0)] <- c(0, 1)
+        }
+        b1[NEF + NVC + ncor0 + 1] <- 1
+        NPM <- length(b1)
+        NW <- 0
+        V <- rep(0, NPM * (NPM + 1)/2)
+    }
+    if (ng0 > 1) {
+        NPROB <- (sum(idprob0 == 1)) * (ng0 - 1)
+        if (NPROB > 0) 
+            b[1:NPROB] <- 0
+        NEF <- sum(idg0 == 1) + (sum(idg0 == 2)) * ng0
+        if (idiag0 == 1) 
+            NVC <- sum(idea0 == 1)
+        if (idiag0 == 0) {
+            kk <- sum(idea0 == 1)
+            NVC <- (kk * (kk + 1))/2
+        }
+        NW <- nwg0 * (ng0 - 1)
+        if (NW > 0) 
+            b[(NPROB + NEF + NVC + 1):(NPROB + NEF + NVC + NW)] <- 1
+        if (ncor0 == 1) {
+            b[NEF + NVC + NW + 1] <- 1
+        }
+        if (ncor0 == 2) {
+            b[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + NVC + 
+                NW + ncor0)] <- c(0, 1)
+        }
+        NPM <- NPROB + NEF + NVC + NW + ncor0 + 1
+        V <- rep(0, NPM * (NPM + 1)/2)
+    }
+    fix0 <- rep(0, NPM)
+    if (length(posfix)) {
+        if (any(!(posfix %in% 1:NPM))) 
+            stop("Indexes in posfix are not correct")
+        fix0[posfix] <- 1
+    }
+    if (length(posfix) == NPM) 
+        stop("No parameter to estimate")
+    Hr0 <- as.numeric(partialH)
+    pbH0 <- rep(0, NPM)
+    if (is.logical(partialH)) {
+        if (partialH) 
+            pbH0 <- rep(1, NPM)
+        if (sum(pbH0) == 0 & Hr0 == 1) 
+            stop("No partial Hessian matrix can be defined")
+    }
+    else {
+        if (!all(Hr0 %in% 1:NPM)) 
+            stop("Indexes in partialH are not correct")
+        pbH0[Hr0] <- 1
+    }
+    indexHr <- NULL
+    if (sum(pbH0) > 0) {
+        if (length(posfix)) 
+            pbH1 <- pbH0[-posfix]
+        else pbH1 <- pbH0
+        indexHr <- which(pbH1 == 1)
+    }
+    if (missing(B)) {
+        if (ng0 == 1) {
+            b <- b1
+        }
+        else {
+            stop("Please specify initial values with argument 'B'")
+        }
+    }
+    else {
+        if (is.vector(B)) {
+            if (length(B) != NPM) {
+                stop(paste("Vector B should be of length", NPM))
+            }
+            else {
+                b <- B
+                if (NVC > 0) {
+                  if (idiag0 == 1) {
+                    b[NPROB + NEF + 1:NVC] <- sqrt(b[NPROB + 
+                      NEF + 1:NVC])
+                  }
+                  else {
+                    varcov <- matrix(0, nrow = nea0, ncol = nea0)
+                    varcov[upper.tri(varcov, diag = TRUE)] <- b[NPROB + 
+                      NEF + 1:NVC]
+                    varcov <- t(varcov)
+                    varcov[upper.tri(varcov, diag = TRUE)] <- b[NPROB + 
+                      NEF + 1:NVC]
+                    ch <- chol(varcov)
+                    b[NPROB + NEF + 1:NVC] <- ch[upper.tri(ch, 
+                      diag = TRUE)]
+                  }
+                }
+            }
+        }
+        else {
+            if (!inherits(B, "hlme")) 
+                stop("B should be either a vector or an object of class hlme")
+            if (ng > 1 & B$ng == 1) {
+                NEF2 <- sum(idg0 != 0)
+                NPM2 <- NEF2 + NVC + ncor0 + 1
+                if (length(B$best) != NPM2) 
+                  stop("B is not correct")
+                if (Brandom == FALSE) {
+                  l <- 0
+                  t <- 0
+                  for (i in 1:nvar.exp) {
+                    if (idg0[i] == 1) {
+                      l <- l + 1
+                      t <- t + 1
+                      b[NPROB + t] <- B$best[l]
+                    }
+                    if (idg0[i] == 2) {
+                      l <- l + 1
+                      for (g in 1:ng) {
+                        t <- t + 1
+                        if (B$conv == 1) 
+                          b[NPROB + t] <- B$best[l] + (g - (ng + 
+                            1)/2) * sqrt(B$V[l * (l + 1)/2])
+                        else b[NPROB + t] <- B$best[l] + (g - 
+                          (ng + 1)/2) * B$best[l]
+                      }
+                    }
+                  }
+                  if (NVC > 0) {
+                    if (idiag == TRUE) {
+                      b[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- B$cholesky[(1:nea0) * 
+                        (2:(nea0 + 1))/2]
+                    }
+                    else {
+                      b[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- B$cholesky
+                    }
+                  }
+                  if (ncor0 > 0) {
+                    b[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + 
+                      NVC + NW + ncor0)] <- B$best[(NPM2 - ncor0):(NPM2 - 
+                      1)]
+                  }
+                  b[NPROB + NEF + NVC + NW + ncor0 + 1] <- B$best[NPM2]
+                }
+                else {
+                  bb <- rep(0, NPM - NPROB - NW)
+                  vbb <- matrix(0, NPM - NPROB - NW, NPM - NPROB - 
+                    NW)
+                  VB <- matrix(0, NPM2, NPM2)
+                  VB[upper.tri(VB, diag = TRUE)] <- B$V
+                  VB <- t(VB)
+                  VB[upper.tri(VB, diag = TRUE)] <- B$V
+                  nbg <- idg0[which(idg0 != 0)]
+                  nbg[which(nbg == 2)] <- ng
+                  nbgnef <- unlist(sapply(nbg, function(k) if (k > 
+                    1) 
+                    rep(2, k)
+                  else k))
+                  vbb[which(nbgnef == 1), setdiff(1:ncol(vbb), 
+                    which(nbgnef != 1))] <- VB[which(nbg == 1), 
+                    setdiff(1:ncol(VB), which(nbg != 1))]
+                  vbb[(NEF + 1):nrow(vbb), (NEF + 1):ncol(vbb)] <- VB[(NEF2 + 
+                    1):nrow(VB), (NEF2 + 1):ncol(VB)]
+                  l <- 0
+                  t <- 0
+                  for (i in 1:nvar.exp) {
+                    if (idg0[i] == 1) {
+                      l <- l + 1
+                      t <- t + 1
+                      bb[t] <- B$best[l]
+                    }
+                    if (idg0[i] == 2) {
+                      l <- l + 1
+                      for (g in 1:ng) {
+                        t <- t + 1
+                        bb[t] <- B$best[l]
+                        vbb[t, t] <- VB[l, l]
+                      }
+                    }
+                  }
+                  if (NVC > 0) {
+                    if (idiag == TRUE) {
+                      bb[NEF + 1:NVC] <- B$cholesky[(1:nea0) * 
+                        (2:(nea0 + 1))/2]
+                    }
+                    else {
+                      bb[NEF + 1:NVC] <- B$cholesky
+                    }
+                  }
+                  if (ncor0 > 0) {
+                    bb[NEF + NVC + 1:ncor0] <- B$best[(NPM2 - 
+                      ncor0):(NPM2 - 1)]
+                  }
+                  bb[NEF + NVC + ncor0 + 1] <- B$best[NPM2]
+                  up <- vbb[upper.tri(vbb, diag = TRUE)]
+                  vbb <- t(vbb)
+                  vbb[upper.tri(vbb, diag = TRUE)] <- up
+                  b[c((NPROB + 1):(NPROB + NEF + NVC), (NPROB + 
+                    NEF + NVC + NW + 1):NPM)] <- rmvnorm(n = 1, 
+                    mean = bb, sigma = vbb)
+                  if (NPROB > 0) 
+                    b[1:NPROB] <- 0
+                  if (NW > 0) 
+                    b[NPROB + NEF + NVC + 1:NW] <- 1
+                }
+            }
+        }
+    }
+    NEF2 <- sum(idg0 != 0)
+    NPM2 <- NEF2 + NVC + ncor0 + 1
+    wRandom <- rep(0, NPM)
+    b0Random <- NULL
+    if (NPROB > 0) 
+        b0Random <- rep(0, ng - 1)
+    l <- 0
+    t <- 0
+    for (i in 1:nvar.exp) {
+        if (idg0[i] == 1) {
+            l <- l + 1
+            t <- t + 1
+            wRandom[NPROB + t] <- l
+        }
+        if (idg0[i] == 2) {
+            l <- l + 1
+            for (g in 1:ng) {
+                t <- t + 1
+                wRandom[NPROB + t] <- l
+            }
+        }
+    }
+    if (NVC > 0) {
+        wRandom[NPROB + NEF + 1:NVC] <- NEF2 + 1:NVC
+    }
+    if (NW > 0) {
+        b0Random <- c(b0Random, rep(1, ng - 1))
+    }
+    if (ncor0 > 0) {
+        wRandom[NPROB + NEF + NVC + NW + 1:ncor0] <- NEF2 + NVC + 
+            1:ncor0
+    }
+    wRandom[NPM] <- NPM2
+    if (ng0 >= 2 & NPROB > 0) {
+        nom <- rep(nom.X0[idprob0 == 1], each = ng0 - 1)
+        nom1 <- paste(nom, " class", c(1:(ng0 - 1)), sep = "")
+        names(b)[1:NPROB] <- nom1
+    }
+    if (ng0 == 1) 
+        names(b)[1:NEF] <- nom.X0[idg0 != 0]
+    if (ng0 > 1) {
+        nom1 <- NULL
+        for (i in 1:nvar.exp) {
+            if (idg0[i] == 2) {
+                nom <- paste(nom.X0[i], " class", c(1:ng0), sep = "")
+                nom1 <- cbind(nom1, t(nom))
+            }
+            if (idg0[i] == 1) 
+                nom1 <- cbind(nom1, nom.X0[i])
+        }
+        names(b)[(NPROB + 1):(NPROB + NEF)] <- nom1
+    }
+    if (NVC != 0) 
+        names(b)[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- paste("varcov", 
+            c(1:(NVC)))
+    if (NW != 0) 
+        names(b)[(NPROB + NEF + NVC + 1):(NPROB + NEF + NVC + 
+            NW)] <- paste("varprop class", c(1:(ng0 - 1)))
+    names(b)[NPM] <- "stderr"
+    if (ncor0 != 0) {
+        names(b)[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + 
+            NVC + NW + ncor0)] <- paste("cor", 1:ncor0, sep = "")
+    }
+    names_best <- names(b)
+    N <- NULL
+    N[1] <- NPROB
+    N[2] <- NEF
+    N[3] <- NVC
+    N[4] <- NW
+    N[5] <- ncor0
+    idiag <- as.integer(idiag0)
+    idea <- as.integer(idea0)
+    nv <- as.integer(nv0)
+    nfix <- sum(fix0)
+    bfix <- 0
+    if (nfix > 0) {
+        bfix <- b[which(fix0 == 1)]
+        b <- b[which(fix0 == 0)]
+        NPM <- NPM - nfix
+    }
+    if (maxiter == 0) {
+        vrais <- loglikhlme(b, Y0, X0, prior0, pprior0, idprob0, 
+            idea0, idg0, idcor0, ns0, ng0, nv0, nobs0, nea0, 
+            nmes0, idiag0, nwg0, ncor0, NPM, fix0, nfix, bfix)
+        out <- list(conv = 2, V = rep(NA, NPM * (NPM + 1)/2), 
+            best = b, ppi2 = rep(NA, ns0 * ng0), predRE = rep(NA, 
+                ns0 * nea0 * (1 + ng0)), varRE = rep(NA, ns0 * 
+                nea0 * (nea0 + 1)/2), resid_m = rep(NA, nobs0), 
+            resid_ss = rep(NA, nobs0), pred_m_g = rep(NA, nobs0 * 
+                ng0), pred_ss_g = rep(NA, nobs0 * ng0), gconv = rep(NA, 
+                3), niter = 0, loglik = vrais)
+    }
+    else {
+        res <- mla(b = b, m = length(b), fn = loglikhlme, clustertype = clustertype, 
+            .packages = NULL, epsa = convB, epsb = convL, epsd = convG, 
+            partialH = indexHr, digits = 8, print.info = verbose, 
+            blinding = FALSE, multipleTry = 25, file = "", nproc = nproc, 
+            maxiter = maxiter, minimize = FALSE, Y0 = Y0, X0 = X0, 
+            prior0 = prior0, pprior0 = pprior0, idprob0 = idprob0, 
+            idea0 = idea0, idg0 = idg0, idcor0 = idcor0, ns0 = ns0, 
+            ng0 = ng0, nv0 = nv0, nobs = nobs0, nea0 = nea0, 
+            nmes0 = nmes0, idiag = idiag0, nwg0 = nwg0, ncor0 = ncor0, 
+            npm0 = NPM, fix0 = fix0, nfix0 = nfix, bfix0 = bfix)
+        out <- list(conv = res$istop, V = res$v, best = res$b, 
+            ppi2 = rep(NA, ns0 * ng0), predRE = rep(NA, ns0 * 
+                nea0 * (1 + ng0)), varRE = rep(NA, ns0 * nea0 * 
+                (nea0 + 1)/2), resid_m = rep(NA, nobs0), resid_ss = rep(NA, 
+                nobs0), pred_m_g = rep(NA, nobs0 * ng0), pred_ss_g = rep(NA, 
+                nobs0 * ng0), gconv = c(res$ca, res$cb, res$rdm), 
+            niter = res$ni, loglik = res$fn.value)
+    }
+    if (out$conv %in% c(1, 2, 3)) {
+        estim0 <- 0
+        ll <- 0
+        ppi0 <- rep(0, ns0 * ng0)
+        resid_m <- rep(0, nobs0)
+        resid_ss <- rep(0, nobs0)
+        pred_m_g <- rep(0, nobs0 * ng0)
+        pred_ss_g <- rep(0, nobs0 * ng0)
+        predRE <- rep(0, ns0 * nea0 * (1 + ng0))
+        varRE <- rep(0, ns0 * nea0 * (nea0 + 1)/2)
+        post <- .Fortran(C_loglikhlme, as.double(Y0), as.double(X0), 
+            as.integer(prior0), as.double(pprior0), as.integer(idprob0), 
+            as.integer(idea0), as.integer(idg0), as.integer(idcor0), 
+            as.integer(ns0), as.integer(ng0), as.integer(nv0), 
+            as.integer(nobs0), as.integer(nea0), as.integer(nmes0), 
+            as.integer(idiag0), as.integer(nwg0), as.integer(ncor0), 
+            as.integer(NPM), as.double(out$best), ppi = as.double(ppi0), 
+            resid_m = as.double(resid_m), resid_ss = as.double(resid_ss), 
+            pred_m_g = as.double(pred_m_g), pred_ss_g = as.double(pred_ss_g), 
+            predRE = as.double(predRE), varRE = as.double(varRE), 
+            as.integer(fix0), as.integer(nfix), as.double(bfix), 
+            as.integer(estim0), loglik = as.double(ll))
+        out$ppi2 <- post$ppi
+        out$predRE <- post$predRE
+        out$varRE <- post$varRE
+        out$resid_m <- post$resid_m
+        out$resid_ss <- post$resid_ss
+        out$pred_m_g <- post$pred_m_g
+        out$pred_ss_g <- post$pred_ss_g
+    }
+    best <- rep(NA, length(fix0))
+    best[which(fix0 == 0)] <- out$best
+    best[which(fix0 == 1)] <- bfix
+    names(best) <- names_best
+    out$best <- best
+    NPM <- NPM + nfix
+    if (length(posfix)) {
+        if (out$conv == 3) {
+            mr <- NPM - sum(pbH0) - length(posfix)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(NA, NPM, NPM)
+            V[setdiff(1:NPM, c(which(pbH0 == 1), posfix)), setdiff(1:NPM, 
+                c(which(pbH0 == 1), posfix))] <- Vr
+            V[, posfix] <- 0
+            V[posfix, ] <- 0
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+        else {
+            mr <- NPM - length(posfix)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(0, NPM, NPM)
+            V[setdiff(1:NPM, posfix), setdiff(1:NPM, posfix)] <- Vr
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+    }
+    else {
+        if (out$conv == 3) {
+            mr <- NPM - sum(pbH0)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(NA, NPM, NPM)
+            V[setdiff(1:NPM, which(pbH0 == 1)), setdiff(1:NPM, 
+                which(pbH0 == 1))] <- Vr
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+        else {
+            V <- out$V
+        }
+    }
+    Cholesky <- rep(0, (nea0 * (nea0 + 1)/2))
+    if (idiag0 == 0 & NVC > 0) {
+        Cholesky[1:NVC] <- out$best[(NPROB + NEF + 1):(NPROB + 
+            NEF + NVC)]
+        U <- matrix(0, nrow = nea0, ncol = nea0)
+        U[upper.tri(U, diag = TRUE)] <- Cholesky[1:NVC]
+        z <- t(U) %*% U
+        out$best[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- z[upper.tri(z, 
+            diag = TRUE)]
+    }
+    if (idiag0 == 1 & NVC > 0) {
+        id <- 1:nea0
+        indice <- rep(id + id * (id - 1)/2)
+        Cholesky[indice] <- out$best[(NPROB + NEF + 1):(NPROB + 
+            NEF + nea0)]
+        out$best[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- out$best[(NPROB + 
+            NEF + 1):(NPROB + NEF + NVC)]^2
+    }
+    predRE <- NULL
+    classpredRE <- NULL
+    if (nea0 > 0) {
+        namesRE <- nom.X0[idea0 != 0]
+        predRE <- matrix(out$predRE[1:(ns0 * nea0)], ncol = nea0, 
+            byrow = TRUE)
+        predRE <- data.frame(INDuniq, predRE)
+        colnames(predRE) <- c(nom.subject, namesRE)
+        classpredRE <- matrix(out$predRE[-c(1:(ns0 * nea0))], 
+            ncol = nea0, byrow = TRUE)
+        classpredRE <- data.frame(rep(INDuniq, each = ng0), rep(1:ng0, 
+            ns0), classpredRE)
+        colnames(classpredRE) <- c(nom.subject, "class", namesRE)
+    }
+    if (ng0 > 1) {
+        ppi <- matrix(out$ppi2, ncol = ng0, byrow = TRUE)
+    }
+    else {
+        ppi <- matrix(rep(1, ns0), ncol = ng0)
+    }
+    chooseClass <- function(ppi) {
+        res <- which.max(ppi)
+        if (!length(res)) 
+            res <- 0
+        return(res)
+    }
+    classif <- apply(ppi, 1, chooseClass)
+    if (any(!is.finite(ppi))) {
+        classif <- rep(NA, ns0)
+        iok <- which(is.finite(ppi[, 1]))
+        classif[iok] <- apply(ppi[iok, , drop = FALSE], 1, which.max)
+    }
+    ppi <- data.frame(INDuniq, classif, ppi)
+    temp <- paste("prob", 1:ng0, sep = "")
+    colnames(ppi) <- c(nom.subject, "class", temp)
+    rownames(ppi) <- 1:ns0
+    pred_m_g <- matrix(out$pred_m_g, nrow = nobs0)
+    pred_ss_g <- matrix(out$pred_ss_g, nrow = nobs0)
+    pred_m <- Y0 - out$resid_m
+    pred_ss <- Y0 - out$resid_ss
+    pred <- data.frame(IND, pred_m, out$resid_m, pred_ss, out$resid_ss, 
+        Y0, pred_m_g, pred_ss_g)
+    temp <- paste("pred_m", 1:ng0, sep = "")
+    temp1 <- paste("pred_ss", 1:ng0, sep = "")
+    colnames(pred) <- c(nom.subject, "pred_m", "resid_m", "pred_ss", 
+        "resid_ss", "obs", temp, temp1)
+    if (!is.null(var.time)) {
+        pred <- data.frame(IND, pred_m, out$resid_m, pred_ss, 
+            out$resid_ss, Y0, pred_m_g, pred_ss_g, timeobs)
+        colnames(pred) <- c(nom.subject, "pred_m", "resid_m", 
+            "pred_ss", "resid_ss", "obs", temp, temp1, var.time)
+    }
+    if (!("intercept" %in% nom.X0)) 
+        X0.names2 <- X0.names2[-1]
+    levelsdata <- vector("list", length(X0.names2))
+    levelsfixed <- vector("list", length(X0.names2))
+    levelsrandom <- vector("list", length(X0.names2))
+    levelsmixture <- vector("list", length(X0.names2))
+    levelsclassmb <- vector("list", length(X0.names2))
+    names(levelsdata) <- X0.names2
+    names(levelsfixed) <- X0.names2
+    names(levelsrandom) <- X0.names2
+    names(levelsmixture) <- X0.names2
+    names(levelsclassmb) <- X0.names2
+    for (v in X0.names2) {
+        if (v == "intercept") 
+            next
+        if (is.factor(data[, v])) {
+            levelsdata[[v]] <- levels(data[, v])
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            fixed))) {
+            levelsfixed[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            random))) {
+            levelsrandom[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            mixture))) {
+            levelsmixture[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            classmb))) {
+            levelsclassmb[[v]] <- levels(as.factor(data[, v]))
+        }
+    }
+    levels <- list(levelsdata = levelsdata, levelsfixed = levelsfixed, 
+        levelsrandom = levelsrandom, levelsmixture = levelsmixture, 
+        levelsclassmb = levelsclassmb)
+    cost <- proc.time() - ptm
+    res <- list(ns = ns0, ng = ng0, idea0 = idea0, idprob0 = idprob0, 
+        idg0 = idg0, idcor0 = idcor0, loglik = out$loglik, best = out$best, 
+        V = V, gconv = out$gconv, conv = out$conv, call = cl, 
+        niter = out$niter, N = N, idiag = idiag0, pred = pred, 
+        pprob = ppi, predRE = predRE, classpredRE = classpredRE, 
+        varRE = out$varRE, Xnames = nom.X0, Xnames2 = X0.names2, 
+        cholesky = Cholesky, na.action = na.action, AIC = 2 * 
+            (length(out$best) - length(posfix) - out$loglik), 
+        BIC = (length(out$best) - length(posfix)) * log(ns0) - 
+            2 * out$loglik, data = datareturn, wRandom = wRandom, 
+        b0Random = b0Random, levels = levels, var.time = var.time, 
+        runtime = cost[3])
+    class(res) <- c("hlme")
+    if (verbose == TRUE) 
+        cat("The program took", round(cost[3], 2), "seconds \n")
+    res
+})(fixed = engagement_score ~ window_90d + I(window_90d^2), mixture = ~window_90d + 
+    I(window_90d^2), random = ~window_90d, subject = "subject_id", 
+    ng = 2, verbose = TRUE)
+ 
+Statistical Model: 
+     Dataset: NULL 
+     Number of subjects: 48942 
+     Number of observations: 397832 
+     Number of latent classes: 2 
+     Number of parameters: 11  
+ 
+Iteration process: 
+     Convergence criteria satisfied 
+     Number of iterations:  56 
+     Convergence criteria: parameters= 1.5e-08 
+                         : likelihood= 6.7e-06 
+                         : second derivatives= 8.9e-12 
+ 
+Goodness-of-fit statistics: 
+     maximum log-likelihood: -1042768.57  
+     AIC: 2085559.13  
+     BIC: 2085655.91  
+ 
+ 
+Maximum Likelihood Estimates: 
+ 
+Fixed effects in the class-membership model:
+(the class of reference is the last class) 
+
+                     coef      Se     Wald p-value
+intercept class1 -2.32850 0.01966 -118.446 0.00000
+
+Fixed effects in the longitudinal model:
+
+                      coef      Se     Wald p-value
+intercept class1  17.81784 0.08164  218.253 0.00000
+intercept class2   3.81216 0.01804  211.314 0.00000
+window_90d class1 -5.35928 0.03517 -152.384 0.00000
+window_90d class2 -0.75334 0.00556 -135.478 0.00000
+I(...) class1      0.40461 0.00350  115.631 0.00000
+I(...) class2      0.05735 0.00049  117.621 0.00000
+
+
+Variance-covariance matrix of the random-effects:
+           intercept window_90d
+intercept    6.23325           
+window_90d  -0.37100     0.0551
+
+                             coef      Se
+Residual standard error:  2.87016 0.00380
+ 
+
+========== Summary: m3 ==========
+ 
+Heterogenous linear mixed model 
+     fitted by maximum likelihood method 
+ 
+(function (fixed, mixture, random, subject, classmb, ng = 1, 
+    idiag = FALSE, nwg = FALSE, cor = NULL, data, B, convB = 1e-04, 
+    convL = 1e-04, convG = 1e-04, prior, pprior = NULL, maxiter = 500, 
+    subset = NULL, na.action = 1, posfix = NULL, verbose = FALSE, 
+    returndata = FALSE, var.time = NULL, partialH = FALSE, nproc = 1, 
+    clustertype = NULL) 
+{
+    ptm <- proc.time()
+    cl <- match.call()
+    args <- as.list(match.call(hlme))[-1]
+    nom.subject <- as.character(subject)
+    nom.prior <- as.character(args$prior)
+    if (!missing(mixture) & ng == 1) 
+        stop("No mixture can be specified with ng=1")
+    if (missing(mixture) & ng > 1) 
+        stop("The argument mixture has to be specified for ng > 1")
+    if (!missing(classmb) & ng == 1) 
+        stop("No classmb can be specified with ng=1")
+    if (missing(random)) 
+        random <- ~-1
+    if (missing(fixed)) 
+        stop("The argument Fixed must be specified in any model")
+    if (missing(classmb) & ng == 1) 
+        classmb <- ~-1
+    if (missing(classmb) & ng > 1) 
+        classmb <- ~1
+    if (missing(mixture)) 
+        mixture <- ~-1
+    if (ng == 1 & nwg == TRUE) 
+        stop("The argument nwg should be FALSE for ng=1")
+    if (!inherits(fixed, "formula")) 
+        stop("The argument fixed must be a formula")
+    if (!inherits(mixture, "formula")) 
+        stop("The argument mixture must be a formula")
+    if (!inherits(random, "formula")) 
+        stop("The argument random must be a formula")
+    if (!inherits(classmb, "formula")) 
+        stop("The argument classmb must be a formula")
+    if (missing(data)) {
+        stop("The argument data should be specified and defined as a data.frame")
+    }
+    if (nrow(data) == 0) 
+        stop("Data should not be empty")
+    if (missing(subject)) {
+        stop("The argument subject must be specified in any model even without random-effects")
+    }
+    if (!is.numeric(data[[subject]])) 
+        stop("The argument subject must be numeric")
+    if (!(na.action %in% c(1, 2))) 
+        stop("only 1 for 'na.omit' or 2 for 'na.fail' are required in na.action argument")
+    if (na.action == 1) {
+        na.action = na.omit
+    }
+    else {
+        na.action = na.fail
+    }
+    if (returndata == TRUE) {
+        datareturn <- data
+    }
+    else {
+        datareturn <- NULL
+    }
+    ncor0 <- 0
+    cor.type <- cl$cor[1]
+    cor.time <- cl$cor[2]
+    cor <- paste(cor.type, cor.time, sep = "-")
+    if (all.equal(cor, character(0)) != TRUE) {
+        if (substr(cor, 1, 2) == "AR") {
+            ncor0 <- 2
+        }
+        else if (substr(cor, 1, 2) == "BM") {
+            ncor0 <- 1
+        }
+        else {
+            stop("The argument cor must be of type AR or BM")
+        }
+        if (!(strsplit(cor, "-")[[1]][2] %in% colnames(data))) 
+            stop("Unable to find time variable from argument cor in data")
+        else {
+            cor.var.time <- strsplit(cor, "-")[[1]][2]
+        }
+    }
+    X0.names2 <- c("intercept")
+    int.fixed <- 0
+    int.mixture <- 0
+    int.random <- 0
+    m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+        names(match.call()), 0))]
+    m$formula <- terms(fixed)
+    m$na.action = na.action
+    m[[1]] <- as.name("model.frame")
+    m <- eval(m, sys.parent())
+    na.fixed <- attr(m, "na.action")
+    if (mixture[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(mixture)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.mixture <- attr(m, "na.action")
+    }
+    else {
+        na.mixture <- NULL
+    }
+    if (random[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(random)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.random <- attr(m, "na.action")
+    }
+    else {
+        na.random <- NULL
+    }
+    if (classmb[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(classmb)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.classmb <- attr(m, "na.action")
+    }
+    else {
+        na.classmb <- NULL
+    }
+    if (ncor0 != 0) {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- as.formula(paste(cor.var.time, 1, sep = "~"))
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.cor <- attr(m, "na.action")
+    }
+    else {
+        na.cor <- NULL
+    }
+    X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(fixed)), 
+        data = data))[-1]))
+    if (mixture[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(mixture)), 
+            data = data))))
+    if (random[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(mtemp <- get_all_vars(formula(terms(random)), 
+            data = data))))
+    if (classmb[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(classmb)), 
+            data = data))))
+    na.action <- unique(c(na.fixed, na.mixture, na.random, na.classmb, 
+        na.cor))
+    newdata <- data
+    if (!isTRUE(all.equal(as.character(cl$subset), character(0)))) {
+        cc <- cl
+        cc <- cc[c(1, which(names(cl) == "subset"))]
+        cc[[1]] <- as.name("model.frame")
+        cc$formula <- formula(paste("~", paste(colnames(data), 
+            collapse = "+")))
+        cc$data <- data
+        cc$na.action <- na.pass
+        newdata <- eval(cc)
+    }
+    if (!is.null(na.action)) {
+        newdata <- newdata[-na.action, ]
+    }
+    attributes(newdata)$terms <- NULL
+    X_fixed <- model.matrix(fixed, data = newdata)
+    if (any(colnames(X_fixed) == "(Intercept)")) {
+        ii <- which(colnames(X_fixed) == "(Intercept)")
+        colnames(X_fixed)[ii] <- "intercept"
+        int.fixed <- 1
+    }
+    nom.fixed <- inddepvar.fixed <- inddepvar.fixed.nom <- colnames(X_fixed)
+    if (int.fixed > 0) 
+        inddepvar.fixed <- inddepvar.fixed[-ii]
+    if (mixture[[2]] != "-1") {
+        X_mixture <- model.matrix(mixture, data = newdata)
+        if (any(colnames(X_mixture) == "(Intercept)")) {
+            ii <- which(colnames(X_mixture) == "(Intercept)")
+            colnames(X_mixture)[ii] <- "intercept"
+            int.mixture <- 1
+        }
+        nom.mixture <- inddepvar.mixture <- inddepvar.mixture.nom <- colnames(X_mixture)
+        if (int.mixture > 0) 
+            inddepvar.mixture <- inddepvar.mixture[-ii]
+        id.X_mixture <- 1
+    }
+    else {
+        inddepvar.mixture <- nom.mixture <- inddepvar.mixture.nom <- NULL
+        id.X_mixture <- 0
+    }
+    if (random[[2]] != "-1") {
+        X_random <- model.matrix(random, data = newdata)
+        if (any(colnames(X_random) == "(Intercept)")) {
+            ii <- which(colnames(X_random) == "(Intercept)")
+            colnames(X_random)[ii] <- "intercept"
+            int.random <- 1
+        }
+        inddepvar.random <- inddepvar.random.nom <- colnames(X_random)
+        if (int.random > 0) 
+            inddepvar.random <- inddepvar.random[-ii]
+        id.X_random <- 1
+    }
+    else {
+        inddepvar.random <- inddepvar.random.nom <- NULL
+        id.X_random <- 0
+    }
+    if (classmb[[2]] != "-1") {
+        if (attr(terms(classmb), "intercept") == 0) {
+            classmb <- paste("~", classmb[2], "+1")
+        }
+        X_classmb <- model.matrix(as.formula(classmb), data = newdata)
+        if (any(colnames(X_classmb) == "(Intercept)")) {
+            ii <- which(colnames(X_classmb) == "(Intercept)")
+            colnames(X_classmb)[ii] <- "intercept"
+        }
+        id.X_classmb <- 1
+    }
+    else {
+        id.X_classmb <- 0
+    }
+    var.exp <- NULL
+    var.exp <- c(var.exp, colnames(X_fixed))
+    if (id.X_mixture == 1) 
+        var.exp <- c(var.exp, colnames(X_mixture))
+    if (id.X_random == 1) 
+        var.exp <- c(var.exp, colnames(X_random))
+    if (id.X_classmb == 1) 
+        var.exp <- c(var.exp, colnames(X_classmb))
+    var.exp <- unique(var.exp)
+    if (ncor0 > 0) {
+        if (!(cor.var.time %in% var.exp)) {
+            var.exp <- c(var.exp, cor.var.time)
+        }
+    }
+    timeobs <- rep(0, nrow(newdata))
+    if (!is.null(var.time)) {
+        timeobs <- newdata[, var.time]
+        if (any(is.na(timeobs))) 
+            stop(paste("Cannot use", var.time, "as time variable because it contains missing data"))
+    }
+    z.fixed <- strsplit(nom.fixed, split = ":", fixed = TRUE)
+    z.fixed <- lapply(z.fixed, sort)
+    if (id.X_mixture == 1) {
+        z.mixture <- strsplit(nom.mixture, split = ":", fixed = TRUE)
+        z.mixture <- lapply(z.mixture, sort)
+    }
+    else z.mixture <- list()
+    if (!all(z.mixture %in% z.fixed)) 
+        stop("The covariates in mixture should also be included in the argument fixed")
+    Y.name <- as.character(attributes(terms(fixed))$variables[2])
+    Y0 <- newdata[, Y.name]
+    X0 <- X_fixed
+    oldnames <- colnames(X0)
+    z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+    z.X0 <- lapply(z.X0, sort)
+    if (id.X_mixture == 1) {
+        z.mixture <- strsplit(colnames(X_mixture), split = ":", 
+            fixed = TRUE)
+        z.mixture <- lapply(z.mixture, sort)
+        for (i in 1:length(colnames(X_mixture))) {
+            if (!isTRUE(z.mixture[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_mixture[, i])
+                colnames(X0) <- c(oldnames, colnames(X_mixture)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.mixture <- list()
+    }
+    if (id.X_random == 1) {
+        z.random <- strsplit(colnames(X_random), split = ":", 
+            fixed = TRUE)
+        z.random <- lapply(z.random, sort)
+        for (i in 1:length(colnames(X_random))) {
+            if (!isTRUE(z.random[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_random[, i])
+                colnames(X0) <- c(oldnames, colnames(X_random)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.random <- list()
+    }
+    if (id.X_classmb == 1) {
+        z.classmb <- strsplit(colnames(X_classmb), split = ":", 
+            fixed = TRUE)
+        z.classmb <- lapply(z.classmb, sort)
+        for (i in 1:length(colnames(X_classmb))) {
+            if (!isTRUE(z.classmb[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_classmb[, i])
+                colnames(X0) <- c(oldnames, colnames(X_classmb)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.classmb <- list()
+    }
+    if (ncor0 > 0) {
+        if (!(cor.var.time %in% colnames(X0))) {
+            X0 <- cbind(X0, newdata[, cor.var.time])
+            colnames(X0) <- c(oldnames, cor.var.time)
+        }
+    }
+    if ((any(is.na(X0)) == TRUE) | (any(is.na(Y0)) == TRUE)) 
+        stop("The data should not contain any missing value")
+    n <- dim(data)[1]
+    nom.X0 <- colnames(X0)
+    nvar.exp <- length(nom.X0)
+    IND <- newdata[, nom.subject]
+    if (missing(prior)) {
+        PRIOR <- seq(0, length = length(IND))
+    }
+    if (!missing(prior)) {
+        PRIOR <- newdata[, nom.prior]
+        PRIOR[(is.na(PRIOR))] <- 0
+    }
+    if (is.null(pprior)) {
+        pprior0 <- matrix(1, length(IND), ng)
+    }
+    else {
+        if (ng == 1) 
+            stop("pprior is only useful if ng>1")
+        if (!is.character(pprior)) 
+            stop("pprior should be a character vector")
+        if (length(pprior) != ng) 
+            stop("pprior should be of length ng")
+        if (!all(pprior %in% colnames(newdata))) 
+            stop("pprior variables should be included in data")
+        pprior0 <- newdata[, pprior]
+    }
+    ng0 <- ng
+    idiag0 <- as.integer(idiag)
+    nwg0 <- as.integer(nwg)
+    idea0 <- rep(0, nvar.exp)
+    idprob0 <- rep(0, nvar.exp)
+    idg0 <- rep(0, nvar.exp)
+    z.X0 <- strsplit(nom.X0, split = ":", fixed = TRUE)
+    z.X0 <- lapply(z.X0, sort)
+    for (i in 1:nvar.exp) {
+        idea0[i] <- z.X0[i] %in% z.random
+        idprob0[i] <- z.X0[i] %in% z.classmb
+        if ((z.X0[i] %in% z.fixed) & !(z.X0[i] %in% z.mixture)) 
+            idg0[i] <- 1
+        if ((z.X0[i] %in% z.fixed) & (z.X0[i] %in% z.mixture)) 
+            idg0[i] <- 2
+    }
+    idcor0 <- rep(0, length(z.X0))
+    if (ncor0 != 0) 
+        idcor0 <- as.numeric(nom.X0 %in% cor.var.time)
+    matYX <- cbind(IND, timeobs, PRIOR, pprior0, Y0, X0)
+    matYXord <- matYX[sort.list(matYX[, 1]), , drop = FALSE]
+    Y0 <- as.numeric(matYXord[, 4 + ng])
+    X0 <- apply(matYXord[, -c(1:(4 + ng)), drop = FALSE], 2, 
+        as.numeric)
+    IND <- matYXord[, 1]
+    timeobs <- matYXord[, 2]
+    PRIOR <- as.numeric(matYXord[, 3])
+    PRIOR <- as.integer(as.vector(PRIOR))
+    X0 <- as.numeric(as.matrix(X0))
+    Y0 <- as.numeric(as.matrix(Y0))
+    nmes0 <- as.vector(table(IND))
+    ns0 <- length(nmes0)
+    prior2 <- as.integer(rep(0, ns0))
+    prior0 <- prior2
+    if (!missing(prior)) {
+        prior0 <- PRIOR[cumsum(nmes0)]
+    }
+    INDuniq <- IND[cumsum(nmes0)]
+    seqnG <- 0:ng0
+    if (!(all(prior0 %in% seqnG))) 
+        stop("The argument prior should contain integers between 0 and ng")
+    if (!is.null(pprior)) {
+        pprior0 <- matYX[cumsum(nmes0), 3 + 1:ng, drop = FALSE]
+        if (any(is.na(pprior0))) 
+            stop("pprior contains missing values")
+    }
+    else {
+        pprior0 <- matrix(1, ns0, ng0)
+    }
+    pprior0 <- t(pprior0)
+    loglik <- as.double(0)
+    ni <- 0
+    istop <- 0
+    gconv <- rep(0, 3)
+    ppi0 <- rep(0, ns0 * ng0)
+    nv0 <- nvar.exp
+    nobs0 <- length(Y0)
+    resid_m <- rep(0, nobs0)
+    resid_ss <- rep(0, nobs0)
+    pred_m_g <- rep(0, nobs0 * ng0)
+    pred_ss_g <- rep(0, nobs0 * ng0)
+    nea0 <- sum(idea0 == 1)
+    predRE <- rep(0, nea0 * ns0 * (1 + ng0))
+    varRE <- rep(0, nea0 * (nea0 + 1)/2 * ns0)
+    Brandom <- FALSE
+    tryB <- try(as.numeric(B), silent = TRUE)
+    if (inherits(tryB, "try-error")) {
+        if (length(cl$B) == 2) {
+            if (!inherits(eval(cl$B[[2]], parent.env(environment())), 
+                "hlme")) 
+                stop("The model specified in B should be of class hlme")
+            if (as.character(cl$B[1]) != "random") 
+                stop("Please use random() to specify random initial values")
+            Brandom <- TRUE
+            B <- eval(cl$B[[2]], parent.env(environment()))
+            if (B$conv != 1) 
+                stop("Model in argument B did not converge properly")
+        }
+    }
+    b <- NULL
+    b1 <- NULL
+    NPROB <- 0
+    if (ng0 == 1 | missing(B)) {
+        NEF <- sum(idg0 != 0)
+        b1[1:NEF] <- 0
+        if (int.fixed > 0) 
+            b1[1] <- mean(Y0)
+        if (idiag0 == 1) {
+            NVC <- sum(idea0 == 1)
+            b1[(NEF + 1):(NEF + NVC)] <- 1
+        }
+        if (idiag0 == 0) {
+            kk <- sum(idea0 == 1)
+            NVC <- (kk * (kk + 1))/2
+            indice <- cumsum(1:kk)
+            bidiag <- rep(0, NVC)
+            bidiag[indice] <- 1
+            b1[(NEF + 1):(NEF + NVC)] <- bidiag
+        }
+        if (ncor0 == 1) {
+            b1[NEF + NVC + 1] <- 1
+        }
+        if (ncor0 == 2) {
+            b1[(NEF + NVC + 1):(NEF + NVC + ncor0)] <- c(0, 1)
+        }
+        b1[NEF + NVC + ncor0 + 1] <- 1
+        NPM <- length(b1)
+        NW <- 0
+        V <- rep(0, NPM * (NPM + 1)/2)
+    }
+    if (ng0 > 1) {
+        NPROB <- (sum(idprob0 == 1)) * (ng0 - 1)
+        if (NPROB > 0) 
+            b[1:NPROB] <- 0
+        NEF <- sum(idg0 == 1) + (sum(idg0 == 2)) * ng0
+        if (idiag0 == 1) 
+            NVC <- sum(idea0 == 1)
+        if (idiag0 == 0) {
+            kk <- sum(idea0 == 1)
+            NVC <- (kk * (kk + 1))/2
+        }
+        NW <- nwg0 * (ng0 - 1)
+        if (NW > 0) 
+            b[(NPROB + NEF + NVC + 1):(NPROB + NEF + NVC + NW)] <- 1
+        if (ncor0 == 1) {
+            b[NEF + NVC + NW + 1] <- 1
+        }
+        if (ncor0 == 2) {
+            b[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + NVC + 
+                NW + ncor0)] <- c(0, 1)
+        }
+        NPM <- NPROB + NEF + NVC + NW + ncor0 + 1
+        V <- rep(0, NPM * (NPM + 1)/2)
+    }
+    fix0 <- rep(0, NPM)
+    if (length(posfix)) {
+        if (any(!(posfix %in% 1:NPM))) 
+            stop("Indexes in posfix are not correct")
+        fix0[posfix] <- 1
+    }
+    if (length(posfix) == NPM) 
+        stop("No parameter to estimate")
+    Hr0 <- as.numeric(partialH)
+    pbH0 <- rep(0, NPM)
+    if (is.logical(partialH)) {
+        if (partialH) 
+            pbH0 <- rep(1, NPM)
+        if (sum(pbH0) == 0 & Hr0 == 1) 
+            stop("No partial Hessian matrix can be defined")
+    }
+    else {
+        if (!all(Hr0 %in% 1:NPM)) 
+            stop("Indexes in partialH are not correct")
+        pbH0[Hr0] <- 1
+    }
+    indexHr <- NULL
+    if (sum(pbH0) > 0) {
+        if (length(posfix)) 
+            pbH1 <- pbH0[-posfix]
+        else pbH1 <- pbH0
+        indexHr <- which(pbH1 == 1)
+    }
+    if (missing(B)) {
+        if (ng0 == 1) {
+            b <- b1
+        }
+        else {
+            stop("Please specify initial values with argument 'B'")
+        }
+    }
+    else {
+        if (is.vector(B)) {
+            if (length(B) != NPM) {
+                stop(paste("Vector B should be of length", NPM))
+            }
+            else {
+                b <- B
+                if (NVC > 0) {
+                  if (idiag0 == 1) {
+                    b[NPROB + NEF + 1:NVC] <- sqrt(b[NPROB + 
+                      NEF + 1:NVC])
+                  }
+                  else {
+                    varcov <- matrix(0, nrow = nea0, ncol = nea0)
+                    varcov[upper.tri(varcov, diag = TRUE)] <- b[NPROB + 
+                      NEF + 1:NVC]
+                    varcov <- t(varcov)
+                    varcov[upper.tri(varcov, diag = TRUE)] <- b[NPROB + 
+                      NEF + 1:NVC]
+                    ch <- chol(varcov)
+                    b[NPROB + NEF + 1:NVC] <- ch[upper.tri(ch, 
+                      diag = TRUE)]
+                  }
+                }
+            }
+        }
+        else {
+            if (!inherits(B, "hlme")) 
+                stop("B should be either a vector or an object of class hlme")
+            if (ng > 1 & B$ng == 1) {
+                NEF2 <- sum(idg0 != 0)
+                NPM2 <- NEF2 + NVC + ncor0 + 1
+                if (length(B$best) != NPM2) 
+                  stop("B is not correct")
+                if (Brandom == FALSE) {
+                  l <- 0
+                  t <- 0
+                  for (i in 1:nvar.exp) {
+                    if (idg0[i] == 1) {
+                      l <- l + 1
+                      t <- t + 1
+                      b[NPROB + t] <- B$best[l]
+                    }
+                    if (idg0[i] == 2) {
+                      l <- l + 1
+                      for (g in 1:ng) {
+                        t <- t + 1
+                        if (B$conv == 1) 
+                          b[NPROB + t] <- B$best[l] + (g - (ng + 
+                            1)/2) * sqrt(B$V[l * (l + 1)/2])
+                        else b[NPROB + t] <- B$best[l] + (g - 
+                          (ng + 1)/2) * B$best[l]
+                      }
+                    }
+                  }
+                  if (NVC > 0) {
+                    if (idiag == TRUE) {
+                      b[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- B$cholesky[(1:nea0) * 
+                        (2:(nea0 + 1))/2]
+                    }
+                    else {
+                      b[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- B$cholesky
+                    }
+                  }
+                  if (ncor0 > 0) {
+                    b[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + 
+                      NVC + NW + ncor0)] <- B$best[(NPM2 - ncor0):(NPM2 - 
+                      1)]
+                  }
+                  b[NPROB + NEF + NVC + NW + ncor0 + 1] <- B$best[NPM2]
+                }
+                else {
+                  bb <- rep(0, NPM - NPROB - NW)
+                  vbb <- matrix(0, NPM - NPROB - NW, NPM - NPROB - 
+                    NW)
+                  VB <- matrix(0, NPM2, NPM2)
+                  VB[upper.tri(VB, diag = TRUE)] <- B$V
+                  VB <- t(VB)
+                  VB[upper.tri(VB, diag = TRUE)] <- B$V
+                  nbg <- idg0[which(idg0 != 0)]
+                  nbg[which(nbg == 2)] <- ng
+                  nbgnef <- unlist(sapply(nbg, function(k) if (k > 
+                    1) 
+                    rep(2, k)
+                  else k))
+                  vbb[which(nbgnef == 1), setdiff(1:ncol(vbb), 
+                    which(nbgnef != 1))] <- VB[which(nbg == 1), 
+                    setdiff(1:ncol(VB), which(nbg != 1))]
+                  vbb[(NEF + 1):nrow(vbb), (NEF + 1):ncol(vbb)] <- VB[(NEF2 + 
+                    1):nrow(VB), (NEF2 + 1):ncol(VB)]
+                  l <- 0
+                  t <- 0
+                  for (i in 1:nvar.exp) {
+                    if (idg0[i] == 1) {
+                      l <- l + 1
+                      t <- t + 1
+                      bb[t] <- B$best[l]
+                    }
+                    if (idg0[i] == 2) {
+                      l <- l + 1
+                      for (g in 1:ng) {
+                        t <- t + 1
+                        bb[t] <- B$best[l]
+                        vbb[t, t] <- VB[l, l]
+                      }
+                    }
+                  }
+                  if (NVC > 0) {
+                    if (idiag == TRUE) {
+                      bb[NEF + 1:NVC] <- B$cholesky[(1:nea0) * 
+                        (2:(nea0 + 1))/2]
+                    }
+                    else {
+                      bb[NEF + 1:NVC] <- B$cholesky
+                    }
+                  }
+                  if (ncor0 > 0) {
+                    bb[NEF + NVC + 1:ncor0] <- B$best[(NPM2 - 
+                      ncor0):(NPM2 - 1)]
+                  }
+                  bb[NEF + NVC + ncor0 + 1] <- B$best[NPM2]
+                  up <- vbb[upper.tri(vbb, diag = TRUE)]
+                  vbb <- t(vbb)
+                  vbb[upper.tri(vbb, diag = TRUE)] <- up
+                  b[c((NPROB + 1):(NPROB + NEF + NVC), (NPROB + 
+                    NEF + NVC + NW + 1):NPM)] <- rmvnorm(n = 1, 
+                    mean = bb, sigma = vbb)
+                  if (NPROB > 0) 
+                    b[1:NPROB] <- 0
+                  if (NW > 0) 
+                    b[NPROB + NEF + NVC + 1:NW] <- 1
+                }
+            }
+        }
+    }
+    NEF2 <- sum(idg0 != 0)
+    NPM2 <- NEF2 + NVC + ncor0 + 1
+    wRandom <- rep(0, NPM)
+    b0Random <- NULL
+    if (NPROB > 0) 
+        b0Random <- rep(0, ng - 1)
+    l <- 0
+    t <- 0
+    for (i in 1:nvar.exp) {
+        if (idg0[i] == 1) {
+            l <- l + 1
+            t <- t + 1
+            wRandom[NPROB + t] <- l
+        }
+        if (idg0[i] == 2) {
+            l <- l + 1
+            for (g in 1:ng) {
+                t <- t + 1
+                wRandom[NPROB + t] <- l
+            }
+        }
+    }
+    if (NVC > 0) {
+        wRandom[NPROB + NEF + 1:NVC] <- NEF2 + 1:NVC
+    }
+    if (NW > 0) {
+        b0Random <- c(b0Random, rep(1, ng - 1))
+    }
+    if (ncor0 > 0) {
+        wRandom[NPROB + NEF + NVC + NW + 1:ncor0] <- NEF2 + NVC + 
+            1:ncor0
+    }
+    wRandom[NPM] <- NPM2
+    if (ng0 >= 2 & NPROB > 0) {
+        nom <- rep(nom.X0[idprob0 == 1], each = ng0 - 1)
+        nom1 <- paste(nom, " class", c(1:(ng0 - 1)), sep = "")
+        names(b)[1:NPROB] <- nom1
+    }
+    if (ng0 == 1) 
+        names(b)[1:NEF] <- nom.X0[idg0 != 0]
+    if (ng0 > 1) {
+        nom1 <- NULL
+        for (i in 1:nvar.exp) {
+            if (idg0[i] == 2) {
+                nom <- paste(nom.X0[i], " class", c(1:ng0), sep = "")
+                nom1 <- cbind(nom1, t(nom))
+            }
+            if (idg0[i] == 1) 
+                nom1 <- cbind(nom1, nom.X0[i])
+        }
+        names(b)[(NPROB + 1):(NPROB + NEF)] <- nom1
+    }
+    if (NVC != 0) 
+        names(b)[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- paste("varcov", 
+            c(1:(NVC)))
+    if (NW != 0) 
+        names(b)[(NPROB + NEF + NVC + 1):(NPROB + NEF + NVC + 
+            NW)] <- paste("varprop class", c(1:(ng0 - 1)))
+    names(b)[NPM] <- "stderr"
+    if (ncor0 != 0) {
+        names(b)[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + 
+            NVC + NW + ncor0)] <- paste("cor", 1:ncor0, sep = "")
+    }
+    names_best <- names(b)
+    N <- NULL
+    N[1] <- NPROB
+    N[2] <- NEF
+    N[3] <- NVC
+    N[4] <- NW
+    N[5] <- ncor0
+    idiag <- as.integer(idiag0)
+    idea <- as.integer(idea0)
+    nv <- as.integer(nv0)
+    nfix <- sum(fix0)
+    bfix <- 0
+    if (nfix > 0) {
+        bfix <- b[which(fix0 == 1)]
+        b <- b[which(fix0 == 0)]
+        NPM <- NPM - nfix
+    }
+    if (maxiter == 0) {
+        vrais <- loglikhlme(b, Y0, X0, prior0, pprior0, idprob0, 
+            idea0, idg0, idcor0, ns0, ng0, nv0, nobs0, nea0, 
+            nmes0, idiag0, nwg0, ncor0, NPM, fix0, nfix, bfix)
+        out <- list(conv = 2, V = rep(NA, NPM * (NPM + 1)/2), 
+            best = b, ppi2 = rep(NA, ns0 * ng0), predRE = rep(NA, 
+                ns0 * nea0 * (1 + ng0)), varRE = rep(NA, ns0 * 
+                nea0 * (nea0 + 1)/2), resid_m = rep(NA, nobs0), 
+            resid_ss = rep(NA, nobs0), pred_m_g = rep(NA, nobs0 * 
+                ng0), pred_ss_g = rep(NA, nobs0 * ng0), gconv = rep(NA, 
+                3), niter = 0, loglik = vrais)
+    }
+    else {
+        res <- mla(b = b, m = length(b), fn = loglikhlme, clustertype = clustertype, 
+            .packages = NULL, epsa = convB, epsb = convL, epsd = convG, 
+            partialH = indexHr, digits = 8, print.info = verbose, 
+            blinding = FALSE, multipleTry = 25, file = "", nproc = nproc, 
+            maxiter = maxiter, minimize = FALSE, Y0 = Y0, X0 = X0, 
+            prior0 = prior0, pprior0 = pprior0, idprob0 = idprob0, 
+            idea0 = idea0, idg0 = idg0, idcor0 = idcor0, ns0 = ns0, 
+            ng0 = ng0, nv0 = nv0, nobs = nobs0, nea0 = nea0, 
+            nmes0 = nmes0, idiag = idiag0, nwg0 = nwg0, ncor0 = ncor0, 
+            npm0 = NPM, fix0 = fix0, nfix0 = nfix, bfix0 = bfix)
+        out <- list(conv = res$istop, V = res$v, best = res$b, 
+            ppi2 = rep(NA, ns0 * ng0), predRE = rep(NA, ns0 * 
+                nea0 * (1 + ng0)), varRE = rep(NA, ns0 * nea0 * 
+                (nea0 + 1)/2), resid_m = rep(NA, nobs0), resid_ss = rep(NA, 
+                nobs0), pred_m_g = rep(NA, nobs0 * ng0), pred_ss_g = rep(NA, 
+                nobs0 * ng0), gconv = c(res$ca, res$cb, res$rdm), 
+            niter = res$ni, loglik = res$fn.value)
+    }
+    if (out$conv %in% c(1, 2, 3)) {
+        estim0 <- 0
+        ll <- 0
+        ppi0 <- rep(0, ns0 * ng0)
+        resid_m <- rep(0, nobs0)
+        resid_ss <- rep(0, nobs0)
+        pred_m_g <- rep(0, nobs0 * ng0)
+        pred_ss_g <- rep(0, nobs0 * ng0)
+        predRE <- rep(0, ns0 * nea0 * (1 + ng0))
+        varRE <- rep(0, ns0 * nea0 * (nea0 + 1)/2)
+        post <- .Fortran(C_loglikhlme, as.double(Y0), as.double(X0), 
+            as.integer(prior0), as.double(pprior0), as.integer(idprob0), 
+            as.integer(idea0), as.integer(idg0), as.integer(idcor0), 
+            as.integer(ns0), as.integer(ng0), as.integer(nv0), 
+            as.integer(nobs0), as.integer(nea0), as.integer(nmes0), 
+            as.integer(idiag0), as.integer(nwg0), as.integer(ncor0), 
+            as.integer(NPM), as.double(out$best), ppi = as.double(ppi0), 
+            resid_m = as.double(resid_m), resid_ss = as.double(resid_ss), 
+            pred_m_g = as.double(pred_m_g), pred_ss_g = as.double(pred_ss_g), 
+            predRE = as.double(predRE), varRE = as.double(varRE), 
+            as.integer(fix0), as.integer(nfix), as.double(bfix), 
+            as.integer(estim0), loglik = as.double(ll))
+        out$ppi2 <- post$ppi
+        out$predRE <- post$predRE
+        out$varRE <- post$varRE
+        out$resid_m <- post$resid_m
+        out$resid_ss <- post$resid_ss
+        out$pred_m_g <- post$pred_m_g
+        out$pred_ss_g <- post$pred_ss_g
+    }
+    best <- rep(NA, length(fix0))
+    best[which(fix0 == 0)] <- out$best
+    best[which(fix0 == 1)] <- bfix
+    names(best) <- names_best
+    out$best <- best
+    NPM <- NPM + nfix
+    if (length(posfix)) {
+        if (out$conv == 3) {
+            mr <- NPM - sum(pbH0) - length(posfix)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(NA, NPM, NPM)
+            V[setdiff(1:NPM, c(which(pbH0 == 1), posfix)), setdiff(1:NPM, 
+                c(which(pbH0 == 1), posfix))] <- Vr
+            V[, posfix] <- 0
+            V[posfix, ] <- 0
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+        else {
+            mr <- NPM - length(posfix)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(0, NPM, NPM)
+            V[setdiff(1:NPM, posfix), setdiff(1:NPM, posfix)] <- Vr
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+    }
+    else {
+        if (out$conv == 3) {
+            mr <- NPM - sum(pbH0)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(NA, NPM, NPM)
+            V[setdiff(1:NPM, which(pbH0 == 1)), setdiff(1:NPM, 
+                which(pbH0 == 1))] <- Vr
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+        else {
+            V <- out$V
+        }
+    }
+    Cholesky <- rep(0, (nea0 * (nea0 + 1)/2))
+    if (idiag0 == 0 & NVC > 0) {
+        Cholesky[1:NVC] <- out$best[(NPROB + NEF + 1):(NPROB + 
+            NEF + NVC)]
+        U <- matrix(0, nrow = nea0, ncol = nea0)
+        U[upper.tri(U, diag = TRUE)] <- Cholesky[1:NVC]
+        z <- t(U) %*% U
+        out$best[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- z[upper.tri(z, 
+            diag = TRUE)]
+    }
+    if (idiag0 == 1 & NVC > 0) {
+        id <- 1:nea0
+        indice <- rep(id + id * (id - 1)/2)
+        Cholesky[indice] <- out$best[(NPROB + NEF + 1):(NPROB + 
+            NEF + nea0)]
+        out$best[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- out$best[(NPROB + 
+            NEF + 1):(NPROB + NEF + NVC)]^2
+    }
+    predRE <- NULL
+    classpredRE <- NULL
+    if (nea0 > 0) {
+        namesRE <- nom.X0[idea0 != 0]
+        predRE <- matrix(out$predRE[1:(ns0 * nea0)], ncol = nea0, 
+            byrow = TRUE)
+        predRE <- data.frame(INDuniq, predRE)
+        colnames(predRE) <- c(nom.subject, namesRE)
+        classpredRE <- matrix(out$predRE[-c(1:(ns0 * nea0))], 
+            ncol = nea0, byrow = TRUE)
+        classpredRE <- data.frame(rep(INDuniq, each = ng0), rep(1:ng0, 
+            ns0), classpredRE)
+        colnames(classpredRE) <- c(nom.subject, "class", namesRE)
+    }
+    if (ng0 > 1) {
+        ppi <- matrix(out$ppi2, ncol = ng0, byrow = TRUE)
+    }
+    else {
+        ppi <- matrix(rep(1, ns0), ncol = ng0)
+    }
+    chooseClass <- function(ppi) {
+        res <- which.max(ppi)
+        if (!length(res)) 
+            res <- 0
+        return(res)
+    }
+    classif <- apply(ppi, 1, chooseClass)
+    if (any(!is.finite(ppi))) {
+        classif <- rep(NA, ns0)
+        iok <- which(is.finite(ppi[, 1]))
+        classif[iok] <- apply(ppi[iok, , drop = FALSE], 1, which.max)
+    }
+    ppi <- data.frame(INDuniq, classif, ppi)
+    temp <- paste("prob", 1:ng0, sep = "")
+    colnames(ppi) <- c(nom.subject, "class", temp)
+    rownames(ppi) <- 1:ns0
+    pred_m_g <- matrix(out$pred_m_g, nrow = nobs0)
+    pred_ss_g <- matrix(out$pred_ss_g, nrow = nobs0)
+    pred_m <- Y0 - out$resid_m
+    pred_ss <- Y0 - out$resid_ss
+    pred <- data.frame(IND, pred_m, out$resid_m, pred_ss, out$resid_ss, 
+        Y0, pred_m_g, pred_ss_g)
+    temp <- paste("pred_m", 1:ng0, sep = "")
+    temp1 <- paste("pred_ss", 1:ng0, sep = "")
+    colnames(pred) <- c(nom.subject, "pred_m", "resid_m", "pred_ss", 
+        "resid_ss", "obs", temp, temp1)
+    if (!is.null(var.time)) {
+        pred <- data.frame(IND, pred_m, out$resid_m, pred_ss, 
+            out$resid_ss, Y0, pred_m_g, pred_ss_g, timeobs)
+        colnames(pred) <- c(nom.subject, "pred_m", "resid_m", 
+            "pred_ss", "resid_ss", "obs", temp, temp1, var.time)
+    }
+    if (!("intercept" %in% nom.X0)) 
+        X0.names2 <- X0.names2[-1]
+    levelsdata <- vector("list", length(X0.names2))
+    levelsfixed <- vector("list", length(X0.names2))
+    levelsrandom <- vector("list", length(X0.names2))
+    levelsmixture <- vector("list", length(X0.names2))
+    levelsclassmb <- vector("list", length(X0.names2))
+    names(levelsdata) <- X0.names2
+    names(levelsfixed) <- X0.names2
+    names(levelsrandom) <- X0.names2
+    names(levelsmixture) <- X0.names2
+    names(levelsclassmb) <- X0.names2
+    for (v in X0.names2) {
+        if (v == "intercept") 
+            next
+        if (is.factor(data[, v])) {
+            levelsdata[[v]] <- levels(data[, v])
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            fixed))) {
+            levelsfixed[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            random))) {
+            levelsrandom[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            mixture))) {
+            levelsmixture[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            classmb))) {
+            levelsclassmb[[v]] <- levels(as.factor(data[, v]))
+        }
+    }
+    levels <- list(levelsdata = levelsdata, levelsfixed = levelsfixed, 
+        levelsrandom = levelsrandom, levelsmixture = levelsmixture, 
+        levelsclassmb = levelsclassmb)
+    cost <- proc.time() - ptm
+    res <- list(ns = ns0, ng = ng0, idea0 = idea0, idprob0 = idprob0, 
+        idg0 = idg0, idcor0 = idcor0, loglik = out$loglik, best = out$best, 
+        V = V, gconv = out$gconv, conv = out$conv, call = cl, 
+        niter = out$niter, N = N, idiag = idiag0, pred = pred, 
+        pprob = ppi, predRE = predRE, classpredRE = classpredRE, 
+        varRE = out$varRE, Xnames = nom.X0, Xnames2 = X0.names2, 
+        cholesky = Cholesky, na.action = na.action, AIC = 2 * 
+            (length(out$best) - length(posfix) - out$loglik), 
+        BIC = (length(out$best) - length(posfix)) * log(ns0) - 
+            2 * out$loglik, data = datareturn, wRandom = wRandom, 
+        b0Random = b0Random, levels = levels, var.time = var.time, 
+        runtime = cost[3])
+    class(res) <- c("hlme")
+    if (verbose == TRUE) 
+        cat("The program took", round(cost[3], 2), "seconds \n")
+    res
+})(fixed = engagement_score ~ window_90d + I(window_90d^2), mixture = ~window_90d + 
+    I(window_90d^2), random = ~window_90d, subject = "subject_id", 
+    ng = 3, verbose = TRUE)
+ 
+Statistical Model: 
+     Dataset: NULL 
+     Number of subjects: 48942 
+     Number of observations: 397832 
+     Number of latent classes: 3 
+     Number of parameters: 15  
+ 
+Iteration process: 
+     Convergence criteria satisfied 
+     Number of iterations:  205 
+     Convergence criteria: parameters= 1.1e-10 
+                         : likelihood= 9.8e-06 
+                         : second derivatives= 4.8e-05 
+ 
+Goodness-of-fit statistics: 
+     maximum log-likelihood: -1036799.49  
+     AIC: 2073628.97  
+     BIC: 2073760.95  
+ 
+ 
+Maximum Likelihood Estimates: 
+ 
+Fixed effects in the class-membership model:
+(the class of reference is the last class) 
+
+                     coef      Se     Wald p-value
+intercept class1  3.35204 0.03705   90.464 0.00000
+intercept class2  0.95708 0.04257   22.485 0.00000
+
+Fixed effects in the longitudinal model:
+
+                      coef      Se     Wald p-value
+intercept class1   3.73709 0.01781  209.849 0.00000
+intercept class2  18.02823 0.08565  210.498 0.00000
+intercept class3   8.74382 0.14038   62.287 0.00000
+window_90d class1 -0.79954 0.00566 -141.227 0.00000
+window_90d class2 -5.61441 0.03464 -162.072 0.00000
+window_90d class3  0.38595 0.05199    7.424 0.00000
+I(...) class1      0.05937 0.00049  120.729 0.00000
+I(...) class2      0.42312 0.00338  125.257 0.00000
+I(...) class3      0.00251 0.00579    0.434 0.66393
+
+
+Variance-covariance matrix of the random-effects:
+           intercept window_90d
+intercept    5.93746           
+window_90d  -0.49399    0.05576
+
+                             coef      Se
+Residual standard error:  2.85784 0.00374
+ 
+
+========== Summary: m4 ==========
+ 
+Heterogenous linear mixed model 
+     fitted by maximum likelihood method 
+ 
+(function (fixed, mixture, random, subject, classmb, ng = 1, 
+    idiag = FALSE, nwg = FALSE, cor = NULL, data, B, convB = 1e-04, 
+    convL = 1e-04, convG = 1e-04, prior, pprior = NULL, maxiter = 500, 
+    subset = NULL, na.action = 1, posfix = NULL, verbose = FALSE, 
+    returndata = FALSE, var.time = NULL, partialH = FALSE, nproc = 1, 
+    clustertype = NULL) 
+{
+    ptm <- proc.time()
+    cl <- match.call()
+    args <- as.list(match.call(hlme))[-1]
+    nom.subject <- as.character(subject)
+    nom.prior <- as.character(args$prior)
+    if (!missing(mixture) & ng == 1) 
+        stop("No mixture can be specified with ng=1")
+    if (missing(mixture) & ng > 1) 
+        stop("The argument mixture has to be specified for ng > 1")
+    if (!missing(classmb) & ng == 1) 
+        stop("No classmb can be specified with ng=1")
+    if (missing(random)) 
+        random <- ~-1
+    if (missing(fixed)) 
+        stop("The argument Fixed must be specified in any model")
+    if (missing(classmb) & ng == 1) 
+        classmb <- ~-1
+    if (missing(classmb) & ng > 1) 
+        classmb <- ~1
+    if (missing(mixture)) 
+        mixture <- ~-1
+    if (ng == 1 & nwg == TRUE) 
+        stop("The argument nwg should be FALSE for ng=1")
+    if (!inherits(fixed, "formula")) 
+        stop("The argument fixed must be a formula")
+    if (!inherits(mixture, "formula")) 
+        stop("The argument mixture must be a formula")
+    if (!inherits(random, "formula")) 
+        stop("The argument random must be a formula")
+    if (!inherits(classmb, "formula")) 
+        stop("The argument classmb must be a formula")
+    if (missing(data)) {
+        stop("The argument data should be specified and defined as a data.frame")
+    }
+    if (nrow(data) == 0) 
+        stop("Data should not be empty")
+    if (missing(subject)) {
+        stop("The argument subject must be specified in any model even without random-effects")
+    }
+    if (!is.numeric(data[[subject]])) 
+        stop("The argument subject must be numeric")
+    if (!(na.action %in% c(1, 2))) 
+        stop("only 1 for 'na.omit' or 2 for 'na.fail' are required in na.action argument")
+    if (na.action == 1) {
+        na.action = na.omit
+    }
+    else {
+        na.action = na.fail
+    }
+    if (returndata == TRUE) {
+        datareturn <- data
+    }
+    else {
+        datareturn <- NULL
+    }
+    ncor0 <- 0
+    cor.type <- cl$cor[1]
+    cor.time <- cl$cor[2]
+    cor <- paste(cor.type, cor.time, sep = "-")
+    if (all.equal(cor, character(0)) != TRUE) {
+        if (substr(cor, 1, 2) == "AR") {
+            ncor0 <- 2
+        }
+        else if (substr(cor, 1, 2) == "BM") {
+            ncor0 <- 1
+        }
+        else {
+            stop("The argument cor must be of type AR or BM")
+        }
+        if (!(strsplit(cor, "-")[[1]][2] %in% colnames(data))) 
+            stop("Unable to find time variable from argument cor in data")
+        else {
+            cor.var.time <- strsplit(cor, "-")[[1]][2]
+        }
+    }
+    X0.names2 <- c("intercept")
+    int.fixed <- 0
+    int.mixture <- 0
+    int.random <- 0
+    m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+        names(match.call()), 0))]
+    m$formula <- terms(fixed)
+    m$na.action = na.action
+    m[[1]] <- as.name("model.frame")
+    m <- eval(m, sys.parent())
+    na.fixed <- attr(m, "na.action")
+    if (mixture[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(mixture)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.mixture <- attr(m, "na.action")
+    }
+    else {
+        na.mixture <- NULL
+    }
+    if (random[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(random)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.random <- attr(m, "na.action")
+    }
+    else {
+        na.random <- NULL
+    }
+    if (classmb[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(classmb)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.classmb <- attr(m, "na.action")
+    }
+    else {
+        na.classmb <- NULL
+    }
+    if (ncor0 != 0) {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- as.formula(paste(cor.var.time, 1, sep = "~"))
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.cor <- attr(m, "na.action")
+    }
+    else {
+        na.cor <- NULL
+    }
+    X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(fixed)), 
+        data = data))[-1]))
+    if (mixture[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(mixture)), 
+            data = data))))
+    if (random[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(mtemp <- get_all_vars(formula(terms(random)), 
+            data = data))))
+    if (classmb[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(classmb)), 
+            data = data))))
+    na.action <- unique(c(na.fixed, na.mixture, na.random, na.classmb, 
+        na.cor))
+    newdata <- data
+    if (!isTRUE(all.equal(as.character(cl$subset), character(0)))) {
+        cc <- cl
+        cc <- cc[c(1, which(names(cl) == "subset"))]
+        cc[[1]] <- as.name("model.frame")
+        cc$formula <- formula(paste("~", paste(colnames(data), 
+            collapse = "+")))
+        cc$data <- data
+        cc$na.action <- na.pass
+        newdata <- eval(cc)
+    }
+    if (!is.null(na.action)) {
+        newdata <- newdata[-na.action, ]
+    }
+    attributes(newdata)$terms <- NULL
+    X_fixed <- model.matrix(fixed, data = newdata)
+    if (any(colnames(X_fixed) == "(Intercept)")) {
+        ii <- which(colnames(X_fixed) == "(Intercept)")
+        colnames(X_fixed)[ii] <- "intercept"
+        int.fixed <- 1
+    }
+    nom.fixed <- inddepvar.fixed <- inddepvar.fixed.nom <- colnames(X_fixed)
+    if (int.fixed > 0) 
+        inddepvar.fixed <- inddepvar.fixed[-ii]
+    if (mixture[[2]] != "-1") {
+        X_mixture <- model.matrix(mixture, data = newdata)
+        if (any(colnames(X_mixture) == "(Intercept)")) {
+            ii <- which(colnames(X_mixture) == "(Intercept)")
+            colnames(X_mixture)[ii] <- "intercept"
+            int.mixture <- 1
+        }
+        nom.mixture <- inddepvar.mixture <- inddepvar.mixture.nom <- colnames(X_mixture)
+        if (int.mixture > 0) 
+            inddepvar.mixture <- inddepvar.mixture[-ii]
+        id.X_mixture <- 1
+    }
+    else {
+        inddepvar.mixture <- nom.mixture <- inddepvar.mixture.nom <- NULL
+        id.X_mixture <- 0
+    }
+    if (random[[2]] != "-1") {
+        X_random <- model.matrix(random, data = newdata)
+        if (any(colnames(X_random) == "(Intercept)")) {
+            ii <- which(colnames(X_random) == "(Intercept)")
+            colnames(X_random)[ii] <- "intercept"
+            int.random <- 1
+        }
+        inddepvar.random <- inddepvar.random.nom <- colnames(X_random)
+        if (int.random > 0) 
+            inddepvar.random <- inddepvar.random[-ii]
+        id.X_random <- 1
+    }
+    else {
+        inddepvar.random <- inddepvar.random.nom <- NULL
+        id.X_random <- 0
+    }
+    if (classmb[[2]] != "-1") {
+        if (attr(terms(classmb), "intercept") == 0) {
+            classmb <- paste("~", classmb[2], "+1")
+        }
+        X_classmb <- model.matrix(as.formula(classmb), data = newdata)
+        if (any(colnames(X_classmb) == "(Intercept)")) {
+            ii <- which(colnames(X_classmb) == "(Intercept)")
+            colnames(X_classmb)[ii] <- "intercept"
+        }
+        id.X_classmb <- 1
+    }
+    else {
+        id.X_classmb <- 0
+    }
+    var.exp <- NULL
+    var.exp <- c(var.exp, colnames(X_fixed))
+    if (id.X_mixture == 1) 
+        var.exp <- c(var.exp, colnames(X_mixture))
+    if (id.X_random == 1) 
+        var.exp <- c(var.exp, colnames(X_random))
+    if (id.X_classmb == 1) 
+        var.exp <- c(var.exp, colnames(X_classmb))
+    var.exp <- unique(var.exp)
+    if (ncor0 > 0) {
+        if (!(cor.var.time %in% var.exp)) {
+            var.exp <- c(var.exp, cor.var.time)
+        }
+    }
+    timeobs <- rep(0, nrow(newdata))
+    if (!is.null(var.time)) {
+        timeobs <- newdata[, var.time]
+        if (any(is.na(timeobs))) 
+            stop(paste("Cannot use", var.time, "as time variable because it contains missing data"))
+    }
+    z.fixed <- strsplit(nom.fixed, split = ":", fixed = TRUE)
+    z.fixed <- lapply(z.fixed, sort)
+    if (id.X_mixture == 1) {
+        z.mixture <- strsplit(nom.mixture, split = ":", fixed = TRUE)
+        z.mixture <- lapply(z.mixture, sort)
+    }
+    else z.mixture <- list()
+    if (!all(z.mixture %in% z.fixed)) 
+        stop("The covariates in mixture should also be included in the argument fixed")
+    Y.name <- as.character(attributes(terms(fixed))$variables[2])
+    Y0 <- newdata[, Y.name]
+    X0 <- X_fixed
+    oldnames <- colnames(X0)
+    z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+    z.X0 <- lapply(z.X0, sort)
+    if (id.X_mixture == 1) {
+        z.mixture <- strsplit(colnames(X_mixture), split = ":", 
+            fixed = TRUE)
+        z.mixture <- lapply(z.mixture, sort)
+        for (i in 1:length(colnames(X_mixture))) {
+            if (!isTRUE(z.mixture[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_mixture[, i])
+                colnames(X0) <- c(oldnames, colnames(X_mixture)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.mixture <- list()
+    }
+    if (id.X_random == 1) {
+        z.random <- strsplit(colnames(X_random), split = ":", 
+            fixed = TRUE)
+        z.random <- lapply(z.random, sort)
+        for (i in 1:length(colnames(X_random))) {
+            if (!isTRUE(z.random[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_random[, i])
+                colnames(X0) <- c(oldnames, colnames(X_random)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.random <- list()
+    }
+    if (id.X_classmb == 1) {
+        z.classmb <- strsplit(colnames(X_classmb), split = ":", 
+            fixed = TRUE)
+        z.classmb <- lapply(z.classmb, sort)
+        for (i in 1:length(colnames(X_classmb))) {
+            if (!isTRUE(z.classmb[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_classmb[, i])
+                colnames(X0) <- c(oldnames, colnames(X_classmb)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.classmb <- list()
+    }
+    if (ncor0 > 0) {
+        if (!(cor.var.time %in% colnames(X0))) {
+            X0 <- cbind(X0, newdata[, cor.var.time])
+            colnames(X0) <- c(oldnames, cor.var.time)
+        }
+    }
+    if ((any(is.na(X0)) == TRUE) | (any(is.na(Y0)) == TRUE)) 
+        stop("The data should not contain any missing value")
+    n <- dim(data)[1]
+    nom.X0 <- colnames(X0)
+    nvar.exp <- length(nom.X0)
+    IND <- newdata[, nom.subject]
+    if (missing(prior)) {
+        PRIOR <- seq(0, length = length(IND))
+    }
+    if (!missing(prior)) {
+        PRIOR <- newdata[, nom.prior]
+        PRIOR[(is.na(PRIOR))] <- 0
+    }
+    if (is.null(pprior)) {
+        pprior0 <- matrix(1, length(IND), ng)
+    }
+    else {
+        if (ng == 1) 
+            stop("pprior is only useful if ng>1")
+        if (!is.character(pprior)) 
+            stop("pprior should be a character vector")
+        if (length(pprior) != ng) 
+            stop("pprior should be of length ng")
+        if (!all(pprior %in% colnames(newdata))) 
+            stop("pprior variables should be included in data")
+        pprior0 <- newdata[, pprior]
+    }
+    ng0 <- ng
+    idiag0 <- as.integer(idiag)
+    nwg0 <- as.integer(nwg)
+    idea0 <- rep(0, nvar.exp)
+    idprob0 <- rep(0, nvar.exp)
+    idg0 <- rep(0, nvar.exp)
+    z.X0 <- strsplit(nom.X0, split = ":", fixed = TRUE)
+    z.X0 <- lapply(z.X0, sort)
+    for (i in 1:nvar.exp) {
+        idea0[i] <- z.X0[i] %in% z.random
+        idprob0[i] <- z.X0[i] %in% z.classmb
+        if ((z.X0[i] %in% z.fixed) & !(z.X0[i] %in% z.mixture)) 
+            idg0[i] <- 1
+        if ((z.X0[i] %in% z.fixed) & (z.X0[i] %in% z.mixture)) 
+            idg0[i] <- 2
+    }
+    idcor0 <- rep(0, length(z.X0))
+    if (ncor0 != 0) 
+        idcor0 <- as.numeric(nom.X0 %in% cor.var.time)
+    matYX <- cbind(IND, timeobs, PRIOR, pprior0, Y0, X0)
+    matYXord <- matYX[sort.list(matYX[, 1]), , drop = FALSE]
+    Y0 <- as.numeric(matYXord[, 4 + ng])
+    X0 <- apply(matYXord[, -c(1:(4 + ng)), drop = FALSE], 2, 
+        as.numeric)
+    IND <- matYXord[, 1]
+    timeobs <- matYXord[, 2]
+    PRIOR <- as.numeric(matYXord[, 3])
+    PRIOR <- as.integer(as.vector(PRIOR))
+    X0 <- as.numeric(as.matrix(X0))
+    Y0 <- as.numeric(as.matrix(Y0))
+    nmes0 <- as.vector(table(IND))
+    ns0 <- length(nmes0)
+    prior2 <- as.integer(rep(0, ns0))
+    prior0 <- prior2
+    if (!missing(prior)) {
+        prior0 <- PRIOR[cumsum(nmes0)]
+    }
+    INDuniq <- IND[cumsum(nmes0)]
+    seqnG <- 0:ng0
+    if (!(all(prior0 %in% seqnG))) 
+        stop("The argument prior should contain integers between 0 and ng")
+    if (!is.null(pprior)) {
+        pprior0 <- matYX[cumsum(nmes0), 3 + 1:ng, drop = FALSE]
+        if (any(is.na(pprior0))) 
+            stop("pprior contains missing values")
+    }
+    else {
+        pprior0 <- matrix(1, ns0, ng0)
+    }
+    pprior0 <- t(pprior0)
+    loglik <- as.double(0)
+    ni <- 0
+    istop <- 0
+    gconv <- rep(0, 3)
+    ppi0 <- rep(0, ns0 * ng0)
+    nv0 <- nvar.exp
+    nobs0 <- length(Y0)
+    resid_m <- rep(0, nobs0)
+    resid_ss <- rep(0, nobs0)
+    pred_m_g <- rep(0, nobs0 * ng0)
+    pred_ss_g <- rep(0, nobs0 * ng0)
+    nea0 <- sum(idea0 == 1)
+    predRE <- rep(0, nea0 * ns0 * (1 + ng0))
+    varRE <- rep(0, nea0 * (nea0 + 1)/2 * ns0)
+    Brandom <- FALSE
+    tryB <- try(as.numeric(B), silent = TRUE)
+    if (inherits(tryB, "try-error")) {
+        if (length(cl$B) == 2) {
+            if (!inherits(eval(cl$B[[2]], parent.env(environment())), 
+                "hlme")) 
+                stop("The model specified in B should be of class hlme")
+            if (as.character(cl$B[1]) != "random") 
+                stop("Please use random() to specify random initial values")
+            Brandom <- TRUE
+            B <- eval(cl$B[[2]], parent.env(environment()))
+            if (B$conv != 1) 
+                stop("Model in argument B did not converge properly")
+        }
+    }
+    b <- NULL
+    b1 <- NULL
+    NPROB <- 0
+    if (ng0 == 1 | missing(B)) {
+        NEF <- sum(idg0 != 0)
+        b1[1:NEF] <- 0
+        if (int.fixed > 0) 
+            b1[1] <- mean(Y0)
+        if (idiag0 == 1) {
+            NVC <- sum(idea0 == 1)
+            b1[(NEF + 1):(NEF + NVC)] <- 1
+        }
+        if (idiag0 == 0) {
+            kk <- sum(idea0 == 1)
+            NVC <- (kk * (kk + 1))/2
+            indice <- cumsum(1:kk)
+            bidiag <- rep(0, NVC)
+            bidiag[indice] <- 1
+            b1[(NEF + 1):(NEF + NVC)] <- bidiag
+        }
+        if (ncor0 == 1) {
+            b1[NEF + NVC + 1] <- 1
+        }
+        if (ncor0 == 2) {
+            b1[(NEF + NVC + 1):(NEF + NVC + ncor0)] <- c(0, 1)
+        }
+        b1[NEF + NVC + ncor0 + 1] <- 1
+        NPM <- length(b1)
+        NW <- 0
+        V <- rep(0, NPM * (NPM + 1)/2)
+    }
+    if (ng0 > 1) {
+        NPROB <- (sum(idprob0 == 1)) * (ng0 - 1)
+        if (NPROB > 0) 
+            b[1:NPROB] <- 0
+        NEF <- sum(idg0 == 1) + (sum(idg0 == 2)) * ng0
+        if (idiag0 == 1) 
+            NVC <- sum(idea0 == 1)
+        if (idiag0 == 0) {
+            kk <- sum(idea0 == 1)
+            NVC <- (kk * (kk + 1))/2
+        }
+        NW <- nwg0 * (ng0 - 1)
+        if (NW > 0) 
+            b[(NPROB + NEF + NVC + 1):(NPROB + NEF + NVC + NW)] <- 1
+        if (ncor0 == 1) {
+            b[NEF + NVC + NW + 1] <- 1
+        }
+        if (ncor0 == 2) {
+            b[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + NVC + 
+                NW + ncor0)] <- c(0, 1)
+        }
+        NPM <- NPROB + NEF + NVC + NW + ncor0 + 1
+        V <- rep(0, NPM * (NPM + 1)/2)
+    }
+    fix0 <- rep(0, NPM)
+    if (length(posfix)) {
+        if (any(!(posfix %in% 1:NPM))) 
+            stop("Indexes in posfix are not correct")
+        fix0[posfix] <- 1
+    }
+    if (length(posfix) == NPM) 
+        stop("No parameter to estimate")
+    Hr0 <- as.numeric(partialH)
+    pbH0 <- rep(0, NPM)
+    if (is.logical(partialH)) {
+        if (partialH) 
+            pbH0 <- rep(1, NPM)
+        if (sum(pbH0) == 0 & Hr0 == 1) 
+            stop("No partial Hessian matrix can be defined")
+    }
+    else {
+        if (!all(Hr0 %in% 1:NPM)) 
+            stop("Indexes in partialH are not correct")
+        pbH0[Hr0] <- 1
+    }
+    indexHr <- NULL
+    if (sum(pbH0) > 0) {
+        if (length(posfix)) 
+            pbH1 <- pbH0[-posfix]
+        else pbH1 <- pbH0
+        indexHr <- which(pbH1 == 1)
+    }
+    if (missing(B)) {
+        if (ng0 == 1) {
+            b <- b1
+        }
+        else {
+            stop("Please specify initial values with argument 'B'")
+        }
+    }
+    else {
+        if (is.vector(B)) {
+            if (length(B) != NPM) {
+                stop(paste("Vector B should be of length", NPM))
+            }
+            else {
+                b <- B
+                if (NVC > 0) {
+                  if (idiag0 == 1) {
+                    b[NPROB + NEF + 1:NVC] <- sqrt(b[NPROB + 
+                      NEF + 1:NVC])
+                  }
+                  else {
+                    varcov <- matrix(0, nrow = nea0, ncol = nea0)
+                    varcov[upper.tri(varcov, diag = TRUE)] <- b[NPROB + 
+                      NEF + 1:NVC]
+                    varcov <- t(varcov)
+                    varcov[upper.tri(varcov, diag = TRUE)] <- b[NPROB + 
+                      NEF + 1:NVC]
+                    ch <- chol(varcov)
+                    b[NPROB + NEF + 1:NVC] <- ch[upper.tri(ch, 
+                      diag = TRUE)]
+                  }
+                }
+            }
+        }
+        else {
+            if (!inherits(B, "hlme")) 
+                stop("B should be either a vector or an object of class hlme")
+            if (ng > 1 & B$ng == 1) {
+                NEF2 <- sum(idg0 != 0)
+                NPM2 <- NEF2 + NVC + ncor0 + 1
+                if (length(B$best) != NPM2) 
+                  stop("B is not correct")
+                if (Brandom == FALSE) {
+                  l <- 0
+                  t <- 0
+                  for (i in 1:nvar.exp) {
+                    if (idg0[i] == 1) {
+                      l <- l + 1
+                      t <- t + 1
+                      b[NPROB + t] <- B$best[l]
+                    }
+                    if (idg0[i] == 2) {
+                      l <- l + 1
+                      for (g in 1:ng) {
+                        t <- t + 1
+                        if (B$conv == 1) 
+                          b[NPROB + t] <- B$best[l] + (g - (ng + 
+                            1)/2) * sqrt(B$V[l * (l + 1)/2])
+                        else b[NPROB + t] <- B$best[l] + (g - 
+                          (ng + 1)/2) * B$best[l]
+                      }
+                    }
+                  }
+                  if (NVC > 0) {
+                    if (idiag == TRUE) {
+                      b[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- B$cholesky[(1:nea0) * 
+                        (2:(nea0 + 1))/2]
+                    }
+                    else {
+                      b[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- B$cholesky
+                    }
+                  }
+                  if (ncor0 > 0) {
+                    b[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + 
+                      NVC + NW + ncor0)] <- B$best[(NPM2 - ncor0):(NPM2 - 
+                      1)]
+                  }
+                  b[NPROB + NEF + NVC + NW + ncor0 + 1] <- B$best[NPM2]
+                }
+                else {
+                  bb <- rep(0, NPM - NPROB - NW)
+                  vbb <- matrix(0, NPM - NPROB - NW, NPM - NPROB - 
+                    NW)
+                  VB <- matrix(0, NPM2, NPM2)
+                  VB[upper.tri(VB, diag = TRUE)] <- B$V
+                  VB <- t(VB)
+                  VB[upper.tri(VB, diag = TRUE)] <- B$V
+                  nbg <- idg0[which(idg0 != 0)]
+                  nbg[which(nbg == 2)] <- ng
+                  nbgnef <- unlist(sapply(nbg, function(k) if (k > 
+                    1) 
+                    rep(2, k)
+                  else k))
+                  vbb[which(nbgnef == 1), setdiff(1:ncol(vbb), 
+                    which(nbgnef != 1))] <- VB[which(nbg == 1), 
+                    setdiff(1:ncol(VB), which(nbg != 1))]
+                  vbb[(NEF + 1):nrow(vbb), (NEF + 1):ncol(vbb)] <- VB[(NEF2 + 
+                    1):nrow(VB), (NEF2 + 1):ncol(VB)]
+                  l <- 0
+                  t <- 0
+                  for (i in 1:nvar.exp) {
+                    if (idg0[i] == 1) {
+                      l <- l + 1
+                      t <- t + 1
+                      bb[t] <- B$best[l]
+                    }
+                    if (idg0[i] == 2) {
+                      l <- l + 1
+                      for (g in 1:ng) {
+                        t <- t + 1
+                        bb[t] <- B$best[l]
+                        vbb[t, t] <- VB[l, l]
+                      }
+                    }
+                  }
+                  if (NVC > 0) {
+                    if (idiag == TRUE) {
+                      bb[NEF + 1:NVC] <- B$cholesky[(1:nea0) * 
+                        (2:(nea0 + 1))/2]
+                    }
+                    else {
+                      bb[NEF + 1:NVC] <- B$cholesky
+                    }
+                  }
+                  if (ncor0 > 0) {
+                    bb[NEF + NVC + 1:ncor0] <- B$best[(NPM2 - 
+                      ncor0):(NPM2 - 1)]
+                  }
+                  bb[NEF + NVC + ncor0 + 1] <- B$best[NPM2]
+                  up <- vbb[upper.tri(vbb, diag = TRUE)]
+                  vbb <- t(vbb)
+                  vbb[upper.tri(vbb, diag = TRUE)] <- up
+                  b[c((NPROB + 1):(NPROB + NEF + NVC), (NPROB + 
+                    NEF + NVC + NW + 1):NPM)] <- rmvnorm(n = 1, 
+                    mean = bb, sigma = vbb)
+                  if (NPROB > 0) 
+                    b[1:NPROB] <- 0
+                  if (NW > 0) 
+                    b[NPROB + NEF + NVC + 1:NW] <- 1
+                }
+            }
+        }
+    }
+    NEF2 <- sum(idg0 != 0)
+    NPM2 <- NEF2 + NVC + ncor0 + 1
+    wRandom <- rep(0, NPM)
+    b0Random <- NULL
+    if (NPROB > 0) 
+        b0Random <- rep(0, ng - 1)
+    l <- 0
+    t <- 0
+    for (i in 1:nvar.exp) {
+        if (idg0[i] == 1) {
+            l <- l + 1
+            t <- t + 1
+            wRandom[NPROB + t] <- l
+        }
+        if (idg0[i] == 2) {
+            l <- l + 1
+            for (g in 1:ng) {
+                t <- t + 1
+                wRandom[NPROB + t] <- l
+            }
+        }
+    }
+    if (NVC > 0) {
+        wRandom[NPROB + NEF + 1:NVC] <- NEF2 + 1:NVC
+    }
+    if (NW > 0) {
+        b0Random <- c(b0Random, rep(1, ng - 1))
+    }
+    if (ncor0 > 0) {
+        wRandom[NPROB + NEF + NVC + NW + 1:ncor0] <- NEF2 + NVC + 
+            1:ncor0
+    }
+    wRandom[NPM] <- NPM2
+    if (ng0 >= 2 & NPROB > 0) {
+        nom <- rep(nom.X0[idprob0 == 1], each = ng0 - 1)
+        nom1 <- paste(nom, " class", c(1:(ng0 - 1)), sep = "")
+        names(b)[1:NPROB] <- nom1
+    }
+    if (ng0 == 1) 
+        names(b)[1:NEF] <- nom.X0[idg0 != 0]
+    if (ng0 > 1) {
+        nom1 <- NULL
+        for (i in 1:nvar.exp) {
+            if (idg0[i] == 2) {
+                nom <- paste(nom.X0[i], " class", c(1:ng0), sep = "")
+                nom1 <- cbind(nom1, t(nom))
+            }
+            if (idg0[i] == 1) 
+                nom1 <- cbind(nom1, nom.X0[i])
+        }
+        names(b)[(NPROB + 1):(NPROB + NEF)] <- nom1
+    }
+    if (NVC != 0) 
+        names(b)[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- paste("varcov", 
+            c(1:(NVC)))
+    if (NW != 0) 
+        names(b)[(NPROB + NEF + NVC + 1):(NPROB + NEF + NVC + 
+            NW)] <- paste("varprop class", c(1:(ng0 - 1)))
+    names(b)[NPM] <- "stderr"
+    if (ncor0 != 0) {
+        names(b)[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + 
+            NVC + NW + ncor0)] <- paste("cor", 1:ncor0, sep = "")
+    }
+    names_best <- names(b)
+    N <- NULL
+    N[1] <- NPROB
+    N[2] <- NEF
+    N[3] <- NVC
+    N[4] <- NW
+    N[5] <- ncor0
+    idiag <- as.integer(idiag0)
+    idea <- as.integer(idea0)
+    nv <- as.integer(nv0)
+    nfix <- sum(fix0)
+    bfix <- 0
+    if (nfix > 0) {
+        bfix <- b[which(fix0 == 1)]
+        b <- b[which(fix0 == 0)]
+        NPM <- NPM - nfix
+    }
+    if (maxiter == 0) {
+        vrais <- loglikhlme(b, Y0, X0, prior0, pprior0, idprob0, 
+            idea0, idg0, idcor0, ns0, ng0, nv0, nobs0, nea0, 
+            nmes0, idiag0, nwg0, ncor0, NPM, fix0, nfix, bfix)
+        out <- list(conv = 2, V = rep(NA, NPM * (NPM + 1)/2), 
+            best = b, ppi2 = rep(NA, ns0 * ng0), predRE = rep(NA, 
+                ns0 * nea0 * (1 + ng0)), varRE = rep(NA, ns0 * 
+                nea0 * (nea0 + 1)/2), resid_m = rep(NA, nobs0), 
+            resid_ss = rep(NA, nobs0), pred_m_g = rep(NA, nobs0 * 
+                ng0), pred_ss_g = rep(NA, nobs0 * ng0), gconv = rep(NA, 
+                3), niter = 0, loglik = vrais)
+    }
+    else {
+        res <- mla(b = b, m = length(b), fn = loglikhlme, clustertype = clustertype, 
+            .packages = NULL, epsa = convB, epsb = convL, epsd = convG, 
+            partialH = indexHr, digits = 8, print.info = verbose, 
+            blinding = FALSE, multipleTry = 25, file = "", nproc = nproc, 
+            maxiter = maxiter, minimize = FALSE, Y0 = Y0, X0 = X0, 
+            prior0 = prior0, pprior0 = pprior0, idprob0 = idprob0, 
+            idea0 = idea0, idg0 = idg0, idcor0 = idcor0, ns0 = ns0, 
+            ng0 = ng0, nv0 = nv0, nobs = nobs0, nea0 = nea0, 
+            nmes0 = nmes0, idiag = idiag0, nwg0 = nwg0, ncor0 = ncor0, 
+            npm0 = NPM, fix0 = fix0, nfix0 = nfix, bfix0 = bfix)
+        out <- list(conv = res$istop, V = res$v, best = res$b, 
+            ppi2 = rep(NA, ns0 * ng0), predRE = rep(NA, ns0 * 
+                nea0 * (1 + ng0)), varRE = rep(NA, ns0 * nea0 * 
+                (nea0 + 1)/2), resid_m = rep(NA, nobs0), resid_ss = rep(NA, 
+                nobs0), pred_m_g = rep(NA, nobs0 * ng0), pred_ss_g = rep(NA, 
+                nobs0 * ng0), gconv = c(res$ca, res$cb, res$rdm), 
+            niter = res$ni, loglik = res$fn.value)
+    }
+    if (out$conv %in% c(1, 2, 3)) {
+        estim0 <- 0
+        ll <- 0
+        ppi0 <- rep(0, ns0 * ng0)
+        resid_m <- rep(0, nobs0)
+        resid_ss <- rep(0, nobs0)
+        pred_m_g <- rep(0, nobs0 * ng0)
+        pred_ss_g <- rep(0, nobs0 * ng0)
+        predRE <- rep(0, ns0 * nea0 * (1 + ng0))
+        varRE <- rep(0, ns0 * nea0 * (nea0 + 1)/2)
+        post <- .Fortran(C_loglikhlme, as.double(Y0), as.double(X0), 
+            as.integer(prior0), as.double(pprior0), as.integer(idprob0), 
+            as.integer(idea0), as.integer(idg0), as.integer(idcor0), 
+            as.integer(ns0), as.integer(ng0), as.integer(nv0), 
+            as.integer(nobs0), as.integer(nea0), as.integer(nmes0), 
+            as.integer(idiag0), as.integer(nwg0), as.integer(ncor0), 
+            as.integer(NPM), as.double(out$best), ppi = as.double(ppi0), 
+            resid_m = as.double(resid_m), resid_ss = as.double(resid_ss), 
+            pred_m_g = as.double(pred_m_g), pred_ss_g = as.double(pred_ss_g), 
+            predRE = as.double(predRE), varRE = as.double(varRE), 
+            as.integer(fix0), as.integer(nfix), as.double(bfix), 
+            as.integer(estim0), loglik = as.double(ll))
+        out$ppi2 <- post$ppi
+        out$predRE <- post$predRE
+        out$varRE <- post$varRE
+        out$resid_m <- post$resid_m
+        out$resid_ss <- post$resid_ss
+        out$pred_m_g <- post$pred_m_g
+        out$pred_ss_g <- post$pred_ss_g
+    }
+    best <- rep(NA, length(fix0))
+    best[which(fix0 == 0)] <- out$best
+    best[which(fix0 == 1)] <- bfix
+    names(best) <- names_best
+    out$best <- best
+    NPM <- NPM + nfix
+    if (length(posfix)) {
+        if (out$conv == 3) {
+            mr <- NPM - sum(pbH0) - length(posfix)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(NA, NPM, NPM)
+            V[setdiff(1:NPM, c(which(pbH0 == 1), posfix)), setdiff(1:NPM, 
+                c(which(pbH0 == 1), posfix))] <- Vr
+            V[, posfix] <- 0
+            V[posfix, ] <- 0
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+        else {
+            mr <- NPM - length(posfix)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(0, NPM, NPM)
+            V[setdiff(1:NPM, posfix), setdiff(1:NPM, posfix)] <- Vr
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+    }
+    else {
+        if (out$conv == 3) {
+            mr <- NPM - sum(pbH0)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(NA, NPM, NPM)
+            V[setdiff(1:NPM, which(pbH0 == 1)), setdiff(1:NPM, 
+                which(pbH0 == 1))] <- Vr
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+        else {
+            V <- out$V
+        }
+    }
+    Cholesky <- rep(0, (nea0 * (nea0 + 1)/2))
+    if (idiag0 == 0 & NVC > 0) {
+        Cholesky[1:NVC] <- out$best[(NPROB + NEF + 1):(NPROB + 
+            NEF + NVC)]
+        U <- matrix(0, nrow = nea0, ncol = nea0)
+        U[upper.tri(U, diag = TRUE)] <- Cholesky[1:NVC]
+        z <- t(U) %*% U
+        out$best[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- z[upper.tri(z, 
+            diag = TRUE)]
+    }
+    if (idiag0 == 1 & NVC > 0) {
+        id <- 1:nea0
+        indice <- rep(id + id * (id - 1)/2)
+        Cholesky[indice] <- out$best[(NPROB + NEF + 1):(NPROB + 
+            NEF + nea0)]
+        out$best[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- out$best[(NPROB + 
+            NEF + 1):(NPROB + NEF + NVC)]^2
+    }
+    predRE <- NULL
+    classpredRE <- NULL
+    if (nea0 > 0) {
+        namesRE <- nom.X0[idea0 != 0]
+        predRE <- matrix(out$predRE[1:(ns0 * nea0)], ncol = nea0, 
+            byrow = TRUE)
+        predRE <- data.frame(INDuniq, predRE)
+        colnames(predRE) <- c(nom.subject, namesRE)
+        classpredRE <- matrix(out$predRE[-c(1:(ns0 * nea0))], 
+            ncol = nea0, byrow = TRUE)
+        classpredRE <- data.frame(rep(INDuniq, each = ng0), rep(1:ng0, 
+            ns0), classpredRE)
+        colnames(classpredRE) <- c(nom.subject, "class", namesRE)
+    }
+    if (ng0 > 1) {
+        ppi <- matrix(out$ppi2, ncol = ng0, byrow = TRUE)
+    }
+    else {
+        ppi <- matrix(rep(1, ns0), ncol = ng0)
+    }
+    chooseClass <- function(ppi) {
+        res <- which.max(ppi)
+        if (!length(res)) 
+            res <- 0
+        return(res)
+    }
+    classif <- apply(ppi, 1, chooseClass)
+    if (any(!is.finite(ppi))) {
+        classif <- rep(NA, ns0)
+        iok <- which(is.finite(ppi[, 1]))
+        classif[iok] <- apply(ppi[iok, , drop = FALSE], 1, which.max)
+    }
+    ppi <- data.frame(INDuniq, classif, ppi)
+    temp <- paste("prob", 1:ng0, sep = "")
+    colnames(ppi) <- c(nom.subject, "class", temp)
+    rownames(ppi) <- 1:ns0
+    pred_m_g <- matrix(out$pred_m_g, nrow = nobs0)
+    pred_ss_g <- matrix(out$pred_ss_g, nrow = nobs0)
+    pred_m <- Y0 - out$resid_m
+    pred_ss <- Y0 - out$resid_ss
+    pred <- data.frame(IND, pred_m, out$resid_m, pred_ss, out$resid_ss, 
+        Y0, pred_m_g, pred_ss_g)
+    temp <- paste("pred_m", 1:ng0, sep = "")
+    temp1 <- paste("pred_ss", 1:ng0, sep = "")
+    colnames(pred) <- c(nom.subject, "pred_m", "resid_m", "pred_ss", 
+        "resid_ss", "obs", temp, temp1)
+    if (!is.null(var.time)) {
+        pred <- data.frame(IND, pred_m, out$resid_m, pred_ss, 
+            out$resid_ss, Y0, pred_m_g, pred_ss_g, timeobs)
+        colnames(pred) <- c(nom.subject, "pred_m", "resid_m", 
+            "pred_ss", "resid_ss", "obs", temp, temp1, var.time)
+    }
+    if (!("intercept" %in% nom.X0)) 
+        X0.names2 <- X0.names2[-1]
+    levelsdata <- vector("list", length(X0.names2))
+    levelsfixed <- vector("list", length(X0.names2))
+    levelsrandom <- vector("list", length(X0.names2))
+    levelsmixture <- vector("list", length(X0.names2))
+    levelsclassmb <- vector("list", length(X0.names2))
+    names(levelsdata) <- X0.names2
+    names(levelsfixed) <- X0.names2
+    names(levelsrandom) <- X0.names2
+    names(levelsmixture) <- X0.names2
+    names(levelsclassmb) <- X0.names2
+    for (v in X0.names2) {
+        if (v == "intercept") 
+            next
+        if (is.factor(data[, v])) {
+            levelsdata[[v]] <- levels(data[, v])
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            fixed))) {
+            levelsfixed[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            random))) {
+            levelsrandom[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            mixture))) {
+            levelsmixture[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            classmb))) {
+            levelsclassmb[[v]] <- levels(as.factor(data[, v]))
+        }
+    }
+    levels <- list(levelsdata = levelsdata, levelsfixed = levelsfixed, 
+        levelsrandom = levelsrandom, levelsmixture = levelsmixture, 
+        levelsclassmb = levelsclassmb)
+    cost <- proc.time() - ptm
+    res <- list(ns = ns0, ng = ng0, idea0 = idea0, idprob0 = idprob0, 
+        idg0 = idg0, idcor0 = idcor0, loglik = out$loglik, best = out$best, 
+        V = V, gconv = out$gconv, conv = out$conv, call = cl, 
+        niter = out$niter, N = N, idiag = idiag0, pred = pred, 
+        pprob = ppi, predRE = predRE, classpredRE = classpredRE, 
+        varRE = out$varRE, Xnames = nom.X0, Xnames2 = X0.names2, 
+        cholesky = Cholesky, na.action = na.action, AIC = 2 * 
+            (length(out$best) - length(posfix) - out$loglik), 
+        BIC = (length(out$best) - length(posfix)) * log(ns0) - 
+            2 * out$loglik, data = datareturn, wRandom = wRandom, 
+        b0Random = b0Random, levels = levels, var.time = var.time, 
+        runtime = cost[3])
+    class(res) <- c("hlme")
+    if (verbose == TRUE) 
+        cat("The program took", round(cost[3], 2), "seconds \n")
+    res
+})(fixed = engagement_score ~ window_90d + I(window_90d^2), mixture = ~window_90d + 
+    I(window_90d^2), random = ~window_90d, subject = "subject_id", 
+    ng = 4, verbose = TRUE)
+ 
+Statistical Model: 
+     Dataset: NULL 
+     Number of subjects: 48942 
+     Number of observations: 397832 
+     Number of latent classes: 4 
+     Number of parameters: 19  
+ 
+Iteration process: 
+     Convergence criteria satisfied 
+     Number of iterations:  271 
+     Convergence criteria: parameters= 3.8e-09 
+                         : likelihood= 1.2e-07 
+                         : second derivatives= 1.1e-10 
+ 
+Goodness-of-fit statistics: 
+     maximum log-likelihood: -1033813.99  
+     AIC: 2067665.99  
+     BIC: 2067833.16  
+ 
+ 
+Maximum Likelihood Estimates: 
+ 
+Fixed effects in the class-membership model:
+(the class of reference is the last class) 
+
+                     coef      Se     Wald p-value
+intercept class1  1.70335 0.06390   26.657 0.00000
+intercept class2  1.98838 0.06292   31.602 0.00000
+intercept class3  4.37915 0.05846   74.904 0.00000
+
+Fixed effects in the longitudinal model:
+
+                      coef      Se     Wald p-value
+intercept class1   6.05888 0.10636   56.967 0.00000
+intercept class2  18.02477 0.08931  201.821 0.00000
+intercept class3   3.67903 0.01834  200.584 0.00000
+intercept class4  13.72921 0.29578   46.418 0.00000
+window_90d class1 -0.27578 0.04134   -6.672 0.00000
+window_90d class2 -5.63216 0.03501 -160.871 0.00000
+window_90d class3 -0.81674 0.00585 -139.687 0.00000
+window_90d class4  0.46912 0.09492    4.942 0.00000
+I(...) class1      0.04868 0.00411   11.835 0.00000
+I(...) class2      0.42086 0.00333  126.429 0.00000
+I(...) class3      0.05931 0.00051  115.890 0.00000
+I(...) class4      0.04597 0.00915    5.022 0.00000
+
+
+Variance-covariance matrix of the random-effects:
+           intercept window_90d
+intercept    5.62443           
+window_90d  -0.49825    0.04777
+
+                             coef      Se
+Residual standard error:  2.86028 0.00372
+ 
+
+========== Summary: m5 ==========
+ 
+Heterogenous linear mixed model 
+     fitted by maximum likelihood method 
+ 
+(function (fixed, mixture, random, subject, classmb, ng = 1, 
+    idiag = FALSE, nwg = FALSE, cor = NULL, data, B, convB = 1e-04, 
+    convL = 1e-04, convG = 1e-04, prior, pprior = NULL, maxiter = 500, 
+    subset = NULL, na.action = 1, posfix = NULL, verbose = FALSE, 
+    returndata = FALSE, var.time = NULL, partialH = FALSE, nproc = 1, 
+    clustertype = NULL) 
+{
+    ptm <- proc.time()
+    cl <- match.call()
+    args <- as.list(match.call(hlme))[-1]
+    nom.subject <- as.character(subject)
+    nom.prior <- as.character(args$prior)
+    if (!missing(mixture) & ng == 1) 
+        stop("No mixture can be specified with ng=1")
+    if (missing(mixture) & ng > 1) 
+        stop("The argument mixture has to be specified for ng > 1")
+    if (!missing(classmb) & ng == 1) 
+        stop("No classmb can be specified with ng=1")
+    if (missing(random)) 
+        random <- ~-1
+    if (missing(fixed)) 
+        stop("The argument Fixed must be specified in any model")
+    if (missing(classmb) & ng == 1) 
+        classmb <- ~-1
+    if (missing(classmb) & ng > 1) 
+        classmb <- ~1
+    if (missing(mixture)) 
+        mixture <- ~-1
+    if (ng == 1 & nwg == TRUE) 
+        stop("The argument nwg should be FALSE for ng=1")
+    if (!inherits(fixed, "formula")) 
+        stop("The argument fixed must be a formula")
+    if (!inherits(mixture, "formula")) 
+        stop("The argument mixture must be a formula")
+    if (!inherits(random, "formula")) 
+        stop("The argument random must be a formula")
+    if (!inherits(classmb, "formula")) 
+        stop("The argument classmb must be a formula")
+    if (missing(data)) {
+        stop("The argument data should be specified and defined as a data.frame")
+    }
+    if (nrow(data) == 0) 
+        stop("Data should not be empty")
+    if (missing(subject)) {
+        stop("The argument subject must be specified in any model even without random-effects")
+    }
+    if (!is.numeric(data[[subject]])) 
+        stop("The argument subject must be numeric")
+    if (!(na.action %in% c(1, 2))) 
+        stop("only 1 for 'na.omit' or 2 for 'na.fail' are required in na.action argument")
+    if (na.action == 1) {
+        na.action = na.omit
+    }
+    else {
+        na.action = na.fail
+    }
+    if (returndata == TRUE) {
+        datareturn <- data
+    }
+    else {
+        datareturn <- NULL
+    }
+    ncor0 <- 0
+    cor.type <- cl$cor[1]
+    cor.time <- cl$cor[2]
+    cor <- paste(cor.type, cor.time, sep = "-")
+    if (all.equal(cor, character(0)) != TRUE) {
+        if (substr(cor, 1, 2) == "AR") {
+            ncor0 <- 2
+        }
+        else if (substr(cor, 1, 2) == "BM") {
+            ncor0 <- 1
+        }
+        else {
+            stop("The argument cor must be of type AR or BM")
+        }
+        if (!(strsplit(cor, "-")[[1]][2] %in% colnames(data))) 
+            stop("Unable to find time variable from argument cor in data")
+        else {
+            cor.var.time <- strsplit(cor, "-")[[1]][2]
+        }
+    }
+    X0.names2 <- c("intercept")
+    int.fixed <- 0
+    int.mixture <- 0
+    int.random <- 0
+    m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+        names(match.call()), 0))]
+    m$formula <- terms(fixed)
+    m$na.action = na.action
+    m[[1]] <- as.name("model.frame")
+    m <- eval(m, sys.parent())
+    na.fixed <- attr(m, "na.action")
+    if (mixture[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(mixture)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.mixture <- attr(m, "na.action")
+    }
+    else {
+        na.mixture <- NULL
+    }
+    if (random[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(random)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.random <- attr(m, "na.action")
+    }
+    else {
+        na.random <- NULL
+    }
+    if (classmb[[2]] != "-1") {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- terms(classmb)
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.classmb <- attr(m, "na.action")
+    }
+    else {
+        na.classmb <- NULL
+    }
+    if (ncor0 != 0) {
+        m <- match.call()[c(1, match(c("data", "subset", "na.action"), 
+            names(match.call()), 0))]
+        m$formula <- as.formula(paste(cor.var.time, 1, sep = "~"))
+        m$na.action <- na.action
+        m[[1]] <- as.name("model.frame")
+        m <- eval(m, sys.parent())
+        na.cor <- attr(m, "na.action")
+    }
+    else {
+        na.cor <- NULL
+    }
+    X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(fixed)), 
+        data = data))[-1]))
+    if (mixture[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(mixture)), 
+            data = data))))
+    if (random[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(mtemp <- get_all_vars(formula(terms(random)), 
+            data = data))))
+    if (classmb[[2]] != "-1") 
+        X0.names2 <- unique(c(X0.names2, colnames(get_all_vars(formula(terms(classmb)), 
+            data = data))))
+    na.action <- unique(c(na.fixed, na.mixture, na.random, na.classmb, 
+        na.cor))
+    newdata <- data
+    if (!isTRUE(all.equal(as.character(cl$subset), character(0)))) {
+        cc <- cl
+        cc <- cc[c(1, which(names(cl) == "subset"))]
+        cc[[1]] <- as.name("model.frame")
+        cc$formula <- formula(paste("~", paste(colnames(data), 
+            collapse = "+")))
+        cc$data <- data
+        cc$na.action <- na.pass
+        newdata <- eval(cc)
+    }
+    if (!is.null(na.action)) {
+        newdata <- newdata[-na.action, ]
+    }
+    attributes(newdata)$terms <- NULL
+    X_fixed <- model.matrix(fixed, data = newdata)
+    if (any(colnames(X_fixed) == "(Intercept)")) {
+        ii <- which(colnames(X_fixed) == "(Intercept)")
+        colnames(X_fixed)[ii] <- "intercept"
+        int.fixed <- 1
+    }
+    nom.fixed <- inddepvar.fixed <- inddepvar.fixed.nom <- colnames(X_fixed)
+    if (int.fixed > 0) 
+        inddepvar.fixed <- inddepvar.fixed[-ii]
+    if (mixture[[2]] != "-1") {
+        X_mixture <- model.matrix(mixture, data = newdata)
+        if (any(colnames(X_mixture) == "(Intercept)")) {
+            ii <- which(colnames(X_mixture) == "(Intercept)")
+            colnames(X_mixture)[ii] <- "intercept"
+            int.mixture <- 1
+        }
+        nom.mixture <- inddepvar.mixture <- inddepvar.mixture.nom <- colnames(X_mixture)
+        if (int.mixture > 0) 
+            inddepvar.mixture <- inddepvar.mixture[-ii]
+        id.X_mixture <- 1
+    }
+    else {
+        inddepvar.mixture <- nom.mixture <- inddepvar.mixture.nom <- NULL
+        id.X_mixture <- 0
+    }
+    if (random[[2]] != "-1") {
+        X_random <- model.matrix(random, data = newdata)
+        if (any(colnames(X_random) == "(Intercept)")) {
+            ii <- which(colnames(X_random) == "(Intercept)")
+            colnames(X_random)[ii] <- "intercept"
+            int.random <- 1
+        }
+        inddepvar.random <- inddepvar.random.nom <- colnames(X_random)
+        if (int.random > 0) 
+            inddepvar.random <- inddepvar.random[-ii]
+        id.X_random <- 1
+    }
+    else {
+        inddepvar.random <- inddepvar.random.nom <- NULL
+        id.X_random <- 0
+    }
+    if (classmb[[2]] != "-1") {
+        if (attr(terms(classmb), "intercept") == 0) {
+            classmb <- paste("~", classmb[2], "+1")
+        }
+        X_classmb <- model.matrix(as.formula(classmb), data = newdata)
+        if (any(colnames(X_classmb) == "(Intercept)")) {
+            ii <- which(colnames(X_classmb) == "(Intercept)")
+            colnames(X_classmb)[ii] <- "intercept"
+        }
+        id.X_classmb <- 1
+    }
+    else {
+        id.X_classmb <- 0
+    }
+    var.exp <- NULL
+    var.exp <- c(var.exp, colnames(X_fixed))
+    if (id.X_mixture == 1) 
+        var.exp <- c(var.exp, colnames(X_mixture))
+    if (id.X_random == 1) 
+        var.exp <- c(var.exp, colnames(X_random))
+    if (id.X_classmb == 1) 
+        var.exp <- c(var.exp, colnames(X_classmb))
+    var.exp <- unique(var.exp)
+    if (ncor0 > 0) {
+        if (!(cor.var.time %in% var.exp)) {
+            var.exp <- c(var.exp, cor.var.time)
+        }
+    }
+    timeobs <- rep(0, nrow(newdata))
+    if (!is.null(var.time)) {
+        timeobs <- newdata[, var.time]
+        if (any(is.na(timeobs))) 
+            stop(paste("Cannot use", var.time, "as time variable because it contains missing data"))
+    }
+    z.fixed <- strsplit(nom.fixed, split = ":", fixed = TRUE)
+    z.fixed <- lapply(z.fixed, sort)
+    if (id.X_mixture == 1) {
+        z.mixture <- strsplit(nom.mixture, split = ":", fixed = TRUE)
+        z.mixture <- lapply(z.mixture, sort)
+    }
+    else z.mixture <- list()
+    if (!all(z.mixture %in% z.fixed)) 
+        stop("The covariates in mixture should also be included in the argument fixed")
+    Y.name <- as.character(attributes(terms(fixed))$variables[2])
+    Y0 <- newdata[, Y.name]
+    X0 <- X_fixed
+    oldnames <- colnames(X0)
+    z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+    z.X0 <- lapply(z.X0, sort)
+    if (id.X_mixture == 1) {
+        z.mixture <- strsplit(colnames(X_mixture), split = ":", 
+            fixed = TRUE)
+        z.mixture <- lapply(z.mixture, sort)
+        for (i in 1:length(colnames(X_mixture))) {
+            if (!isTRUE(z.mixture[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_mixture[, i])
+                colnames(X0) <- c(oldnames, colnames(X_mixture)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.mixture <- list()
+    }
+    if (id.X_random == 1) {
+        z.random <- strsplit(colnames(X_random), split = ":", 
+            fixed = TRUE)
+        z.random <- lapply(z.random, sort)
+        for (i in 1:length(colnames(X_random))) {
+            if (!isTRUE(z.random[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_random[, i])
+                colnames(X0) <- c(oldnames, colnames(X_random)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.random <- list()
+    }
+    if (id.X_classmb == 1) {
+        z.classmb <- strsplit(colnames(X_classmb), split = ":", 
+            fixed = TRUE)
+        z.classmb <- lapply(z.classmb, sort)
+        for (i in 1:length(colnames(X_classmb))) {
+            if (!isTRUE(z.classmb[i] %in% z.X0)) {
+                X0 <- cbind(X0, X_classmb[, i])
+                colnames(X0) <- c(oldnames, colnames(X_classmb)[i])
+                oldnames <- colnames(X0)
+                z.X0 <- strsplit(colnames(X0), split = ":", fixed = TRUE)
+                z.X0 <- lapply(z.X0, sort)
+            }
+        }
+    }
+    else {
+        z.classmb <- list()
+    }
+    if (ncor0 > 0) {
+        if (!(cor.var.time %in% colnames(X0))) {
+            X0 <- cbind(X0, newdata[, cor.var.time])
+            colnames(X0) <- c(oldnames, cor.var.time)
+        }
+    }
+    if ((any(is.na(X0)) == TRUE) | (any(is.na(Y0)) == TRUE)) 
+        stop("The data should not contain any missing value")
+    n <- dim(data)[1]
+    nom.X0 <- colnames(X0)
+    nvar.exp <- length(nom.X0)
+    IND <- newdata[, nom.subject]
+    if (missing(prior)) {
+        PRIOR <- seq(0, length = length(IND))
+    }
+    if (!missing(prior)) {
+        PRIOR <- newdata[, nom.prior]
+        PRIOR[(is.na(PRIOR))] <- 0
+    }
+    if (is.null(pprior)) {
+        pprior0 <- matrix(1, length(IND), ng)
+    }
+    else {
+        if (ng == 1) 
+            stop("pprior is only useful if ng>1")
+        if (!is.character(pprior)) 
+            stop("pprior should be a character vector")
+        if (length(pprior) != ng) 
+            stop("pprior should be of length ng")
+        if (!all(pprior %in% colnames(newdata))) 
+            stop("pprior variables should be included in data")
+        pprior0 <- newdata[, pprior]
+    }
+    ng0 <- ng
+    idiag0 <- as.integer(idiag)
+    nwg0 <- as.integer(nwg)
+    idea0 <- rep(0, nvar.exp)
+    idprob0 <- rep(0, nvar.exp)
+    idg0 <- rep(0, nvar.exp)
+    z.X0 <- strsplit(nom.X0, split = ":", fixed = TRUE)
+    z.X0 <- lapply(z.X0, sort)
+    for (i in 1:nvar.exp) {
+        idea0[i] <- z.X0[i] %in% z.random
+        idprob0[i] <- z.X0[i] %in% z.classmb
+        if ((z.X0[i] %in% z.fixed) & !(z.X0[i] %in% z.mixture)) 
+            idg0[i] <- 1
+        if ((z.X0[i] %in% z.fixed) & (z.X0[i] %in% z.mixture)) 
+            idg0[i] <- 2
+    }
+    idcor0 <- rep(0, length(z.X0))
+    if (ncor0 != 0) 
+        idcor0 <- as.numeric(nom.X0 %in% cor.var.time)
+    matYX <- cbind(IND, timeobs, PRIOR, pprior0, Y0, X0)
+    matYXord <- matYX[sort.list(matYX[, 1]), , drop = FALSE]
+    Y0 <- as.numeric(matYXord[, 4 + ng])
+    X0 <- apply(matYXord[, -c(1:(4 + ng)), drop = FALSE], 2, 
+        as.numeric)
+    IND <- matYXord[, 1]
+    timeobs <- matYXord[, 2]
+    PRIOR <- as.numeric(matYXord[, 3])
+    PRIOR <- as.integer(as.vector(PRIOR))
+    X0 <- as.numeric(as.matrix(X0))
+    Y0 <- as.numeric(as.matrix(Y0))
+    nmes0 <- as.vector(table(IND))
+    ns0 <- length(nmes0)
+    prior2 <- as.integer(rep(0, ns0))
+    prior0 <- prior2
+    if (!missing(prior)) {
+        prior0 <- PRIOR[cumsum(nmes0)]
+    }
+    INDuniq <- IND[cumsum(nmes0)]
+    seqnG <- 0:ng0
+    if (!(all(prior0 %in% seqnG))) 
+        stop("The argument prior should contain integers between 0 and ng")
+    if (!is.null(pprior)) {
+        pprior0 <- matYX[cumsum(nmes0), 3 + 1:ng, drop = FALSE]
+        if (any(is.na(pprior0))) 
+            stop("pprior contains missing values")
+    }
+    else {
+        pprior0 <- matrix(1, ns0, ng0)
+    }
+    pprior0 <- t(pprior0)
+    loglik <- as.double(0)
+    ni <- 0
+    istop <- 0
+    gconv <- rep(0, 3)
+    ppi0 <- rep(0, ns0 * ng0)
+    nv0 <- nvar.exp
+    nobs0 <- length(Y0)
+    resid_m <- rep(0, nobs0)
+    resid_ss <- rep(0, nobs0)
+    pred_m_g <- rep(0, nobs0 * ng0)
+    pred_ss_g <- rep(0, nobs0 * ng0)
+    nea0 <- sum(idea0 == 1)
+    predRE <- rep(0, nea0 * ns0 * (1 + ng0))
+    varRE <- rep(0, nea0 * (nea0 + 1)/2 * ns0)
+    Brandom <- FALSE
+    tryB <- try(as.numeric(B), silent = TRUE)
+    if (inherits(tryB, "try-error")) {
+        if (length(cl$B) == 2) {
+            if (!inherits(eval(cl$B[[2]], parent.env(environment())), 
+                "hlme")) 
+                stop("The model specified in B should be of class hlme")
+            if (as.character(cl$B[1]) != "random") 
+                stop("Please use random() to specify random initial values")
+            Brandom <- TRUE
+            B <- eval(cl$B[[2]], parent.env(environment()))
+            if (B$conv != 1) 
+                stop("Model in argument B did not converge properly")
+        }
+    }
+    b <- NULL
+    b1 <- NULL
+    NPROB <- 0
+    if (ng0 == 1 | missing(B)) {
+        NEF <- sum(idg0 != 0)
+        b1[1:NEF] <- 0
+        if (int.fixed > 0) 
+            b1[1] <- mean(Y0)
+        if (idiag0 == 1) {
+            NVC <- sum(idea0 == 1)
+            b1[(NEF + 1):(NEF + NVC)] <- 1
+        }
+        if (idiag0 == 0) {
+            kk <- sum(idea0 == 1)
+            NVC <- (kk * (kk + 1))/2
+            indice <- cumsum(1:kk)
+            bidiag <- rep(0, NVC)
+            bidiag[indice] <- 1
+            b1[(NEF + 1):(NEF + NVC)] <- bidiag
+        }
+        if (ncor0 == 1) {
+            b1[NEF + NVC + 1] <- 1
+        }
+        if (ncor0 == 2) {
+            b1[(NEF + NVC + 1):(NEF + NVC + ncor0)] <- c(0, 1)
+        }
+        b1[NEF + NVC + ncor0 + 1] <- 1
+        NPM <- length(b1)
+        NW <- 0
+        V <- rep(0, NPM * (NPM + 1)/2)
+    }
+    if (ng0 > 1) {
+        NPROB <- (sum(idprob0 == 1)) * (ng0 - 1)
+        if (NPROB > 0) 
+            b[1:NPROB] <- 0
+        NEF <- sum(idg0 == 1) + (sum(idg0 == 2)) * ng0
+        if (idiag0 == 1) 
+            NVC <- sum(idea0 == 1)
+        if (idiag0 == 0) {
+            kk <- sum(idea0 == 1)
+            NVC <- (kk * (kk + 1))/2
+        }
+        NW <- nwg0 * (ng0 - 1)
+        if (NW > 0) 
+            b[(NPROB + NEF + NVC + 1):(NPROB + NEF + NVC + NW)] <- 1
+        if (ncor0 == 1) {
+            b[NEF + NVC + NW + 1] <- 1
+        }
+        if (ncor0 == 2) {
+            b[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + NVC + 
+                NW + ncor0)] <- c(0, 1)
+        }
+        NPM <- NPROB + NEF + NVC + NW + ncor0 + 1
+        V <- rep(0, NPM * (NPM + 1)/2)
+    }
+    fix0 <- rep(0, NPM)
+    if (length(posfix)) {
+        if (any(!(posfix %in% 1:NPM))) 
+            stop("Indexes in posfix are not correct")
+        fix0[posfix] <- 1
+    }
+    if (length(posfix) == NPM) 
+        stop("No parameter to estimate")
+    Hr0 <- as.numeric(partialH)
+    pbH0 <- rep(0, NPM)
+    if (is.logical(partialH)) {
+        if (partialH) 
+            pbH0 <- rep(1, NPM)
+        if (sum(pbH0) == 0 & Hr0 == 1) 
+            stop("No partial Hessian matrix can be defined")
+    }
+    else {
+        if (!all(Hr0 %in% 1:NPM)) 
+            stop("Indexes in partialH are not correct")
+        pbH0[Hr0] <- 1
+    }
+    indexHr <- NULL
+    if (sum(pbH0) > 0) {
+        if (length(posfix)) 
+            pbH1 <- pbH0[-posfix]
+        else pbH1 <- pbH0
+        indexHr <- which(pbH1 == 1)
+    }
+    if (missing(B)) {
+        if (ng0 == 1) {
+            b <- b1
+        }
+        else {
+            stop("Please specify initial values with argument 'B'")
+        }
+    }
+    else {
+        if (is.vector(B)) {
+            if (length(B) != NPM) {
+                stop(paste("Vector B should be of length", NPM))
+            }
+            else {
+                b <- B
+                if (NVC > 0) {
+                  if (idiag0 == 1) {
+                    b[NPROB + NEF + 1:NVC] <- sqrt(b[NPROB + 
+                      NEF + 1:NVC])
+                  }
+                  else {
+                    varcov <- matrix(0, nrow = nea0, ncol = nea0)
+                    varcov[upper.tri(varcov, diag = TRUE)] <- b[NPROB + 
+                      NEF + 1:NVC]
+                    varcov <- t(varcov)
+                    varcov[upper.tri(varcov, diag = TRUE)] <- b[NPROB + 
+                      NEF + 1:NVC]
+                    ch <- chol(varcov)
+                    b[NPROB + NEF + 1:NVC] <- ch[upper.tri(ch, 
+                      diag = TRUE)]
+                  }
+                }
+            }
+        }
+        else {
+            if (!inherits(B, "hlme")) 
+                stop("B should be either a vector or an object of class hlme")
+            if (ng > 1 & B$ng == 1) {
+                NEF2 <- sum(idg0 != 0)
+                NPM2 <- NEF2 + NVC + ncor0 + 1
+                if (length(B$best) != NPM2) 
+                  stop("B is not correct")
+                if (Brandom == FALSE) {
+                  l <- 0
+                  t <- 0
+                  for (i in 1:nvar.exp) {
+                    if (idg0[i] == 1) {
+                      l <- l + 1
+                      t <- t + 1
+                      b[NPROB + t] <- B$best[l]
+                    }
+                    if (idg0[i] == 2) {
+                      l <- l + 1
+                      for (g in 1:ng) {
+                        t <- t + 1
+                        if (B$conv == 1) 
+                          b[NPROB + t] <- B$best[l] + (g - (ng + 
+                            1)/2) * sqrt(B$V[l * (l + 1)/2])
+                        else b[NPROB + t] <- B$best[l] + (g - 
+                          (ng + 1)/2) * B$best[l]
+                      }
+                    }
+                  }
+                  if (NVC > 0) {
+                    if (idiag == TRUE) {
+                      b[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- B$cholesky[(1:nea0) * 
+                        (2:(nea0 + 1))/2]
+                    }
+                    else {
+                      b[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- B$cholesky
+                    }
+                  }
+                  if (ncor0 > 0) {
+                    b[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + 
+                      NVC + NW + ncor0)] <- B$best[(NPM2 - ncor0):(NPM2 - 
+                      1)]
+                  }
+                  b[NPROB + NEF + NVC + NW + ncor0 + 1] <- B$best[NPM2]
+                }
+                else {
+                  bb <- rep(0, NPM - NPROB - NW)
+                  vbb <- matrix(0, NPM - NPROB - NW, NPM - NPROB - 
+                    NW)
+                  VB <- matrix(0, NPM2, NPM2)
+                  VB[upper.tri(VB, diag = TRUE)] <- B$V
+                  VB <- t(VB)
+                  VB[upper.tri(VB, diag = TRUE)] <- B$V
+                  nbg <- idg0[which(idg0 != 0)]
+                  nbg[which(nbg == 2)] <- ng
+                  nbgnef <- unlist(sapply(nbg, function(k) if (k > 
+                    1) 
+                    rep(2, k)
+                  else k))
+                  vbb[which(nbgnef == 1), setdiff(1:ncol(vbb), 
+                    which(nbgnef != 1))] <- VB[which(nbg == 1), 
+                    setdiff(1:ncol(VB), which(nbg != 1))]
+                  vbb[(NEF + 1):nrow(vbb), (NEF + 1):ncol(vbb)] <- VB[(NEF2 + 
+                    1):nrow(VB), (NEF2 + 1):ncol(VB)]
+                  l <- 0
+                  t <- 0
+                  for (i in 1:nvar.exp) {
+                    if (idg0[i] == 1) {
+                      l <- l + 1
+                      t <- t + 1
+                      bb[t] <- B$best[l]
+                    }
+                    if (idg0[i] == 2) {
+                      l <- l + 1
+                      for (g in 1:ng) {
+                        t <- t + 1
+                        bb[t] <- B$best[l]
+                        vbb[t, t] <- VB[l, l]
+                      }
+                    }
+                  }
+                  if (NVC > 0) {
+                    if (idiag == TRUE) {
+                      bb[NEF + 1:NVC] <- B$cholesky[(1:nea0) * 
+                        (2:(nea0 + 1))/2]
+                    }
+                    else {
+                      bb[NEF + 1:NVC] <- B$cholesky
+                    }
+                  }
+                  if (ncor0 > 0) {
+                    bb[NEF + NVC + 1:ncor0] <- B$best[(NPM2 - 
+                      ncor0):(NPM2 - 1)]
+                  }
+                  bb[NEF + NVC + ncor0 + 1] <- B$best[NPM2]
+                  up <- vbb[upper.tri(vbb, diag = TRUE)]
+                  vbb <- t(vbb)
+                  vbb[upper.tri(vbb, diag = TRUE)] <- up
+                  b[c((NPROB + 1):(NPROB + NEF + NVC), (NPROB + 
+                    NEF + NVC + NW + 1):NPM)] <- rmvnorm(n = 1, 
+                    mean = bb, sigma = vbb)
+                  if (NPROB > 0) 
+                    b[1:NPROB] <- 0
+                  if (NW > 0) 
+                    b[NPROB + NEF + NVC + 1:NW] <- 1
+                }
+            }
+        }
+    }
+    NEF2 <- sum(idg0 != 0)
+    NPM2 <- NEF2 + NVC + ncor0 + 1
+    wRandom <- rep(0, NPM)
+    b0Random <- NULL
+    if (NPROB > 0) 
+        b0Random <- rep(0, ng - 1)
+    l <- 0
+    t <- 0
+    for (i in 1:nvar.exp) {
+        if (idg0[i] == 1) {
+            l <- l + 1
+            t <- t + 1
+            wRandom[NPROB + t] <- l
+        }
+        if (idg0[i] == 2) {
+            l <- l + 1
+            for (g in 1:ng) {
+                t <- t + 1
+                wRandom[NPROB + t] <- l
+            }
+        }
+    }
+    if (NVC > 0) {
+        wRandom[NPROB + NEF + 1:NVC] <- NEF2 + 1:NVC
+    }
+    if (NW > 0) {
+        b0Random <- c(b0Random, rep(1, ng - 1))
+    }
+    if (ncor0 > 0) {
+        wRandom[NPROB + NEF + NVC + NW + 1:ncor0] <- NEF2 + NVC + 
+            1:ncor0
+    }
+    wRandom[NPM] <- NPM2
+    if (ng0 >= 2 & NPROB > 0) {
+        nom <- rep(nom.X0[idprob0 == 1], each = ng0 - 1)
+        nom1 <- paste(nom, " class", c(1:(ng0 - 1)), sep = "")
+        names(b)[1:NPROB] <- nom1
+    }
+    if (ng0 == 1) 
+        names(b)[1:NEF] <- nom.X0[idg0 != 0]
+    if (ng0 > 1) {
+        nom1 <- NULL
+        for (i in 1:nvar.exp) {
+            if (idg0[i] == 2) {
+                nom <- paste(nom.X0[i], " class", c(1:ng0), sep = "")
+                nom1 <- cbind(nom1, t(nom))
+            }
+            if (idg0[i] == 1) 
+                nom1 <- cbind(nom1, nom.X0[i])
+        }
+        names(b)[(NPROB + 1):(NPROB + NEF)] <- nom1
+    }
+    if (NVC != 0) 
+        names(b)[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- paste("varcov", 
+            c(1:(NVC)))
+    if (NW != 0) 
+        names(b)[(NPROB + NEF + NVC + 1):(NPROB + NEF + NVC + 
+            NW)] <- paste("varprop class", c(1:(ng0 - 1)))
+    names(b)[NPM] <- "stderr"
+    if (ncor0 != 0) {
+        names(b)[(NPROB + NEF + NVC + NW + 1):(NPROB + NEF + 
+            NVC + NW + ncor0)] <- paste("cor", 1:ncor0, sep = "")
+    }
+    names_best <- names(b)
+    N <- NULL
+    N[1] <- NPROB
+    N[2] <- NEF
+    N[3] <- NVC
+    N[4] <- NW
+    N[5] <- ncor0
+    idiag <- as.integer(idiag0)
+    idea <- as.integer(idea0)
+    nv <- as.integer(nv0)
+    nfix <- sum(fix0)
+    bfix <- 0
+    if (nfix > 0) {
+        bfix <- b[which(fix0 == 1)]
+        b <- b[which(fix0 == 0)]
+        NPM <- NPM - nfix
+    }
+    if (maxiter == 0) {
+        vrais <- loglikhlme(b, Y0, X0, prior0, pprior0, idprob0, 
+            idea0, idg0, idcor0, ns0, ng0, nv0, nobs0, nea0, 
+            nmes0, idiag0, nwg0, ncor0, NPM, fix0, nfix, bfix)
+        out <- list(conv = 2, V = rep(NA, NPM * (NPM + 1)/2), 
+            best = b, ppi2 = rep(NA, ns0 * ng0), predRE = rep(NA, 
+                ns0 * nea0 * (1 + ng0)), varRE = rep(NA, ns0 * 
+                nea0 * (nea0 + 1)/2), resid_m = rep(NA, nobs0), 
+            resid_ss = rep(NA, nobs0), pred_m_g = rep(NA, nobs0 * 
+                ng0), pred_ss_g = rep(NA, nobs0 * ng0), gconv = rep(NA, 
+                3), niter = 0, loglik = vrais)
+    }
+    else {
+        res <- mla(b = b, m = length(b), fn = loglikhlme, clustertype = clustertype, 
+            .packages = NULL, epsa = convB, epsb = convL, epsd = convG, 
+            partialH = indexHr, digits = 8, print.info = verbose, 
+            blinding = FALSE, multipleTry = 25, file = "", nproc = nproc, 
+            maxiter = maxiter, minimize = FALSE, Y0 = Y0, X0 = X0, 
+            prior0 = prior0, pprior0 = pprior0, idprob0 = idprob0, 
+            idea0 = idea0, idg0 = idg0, idcor0 = idcor0, ns0 = ns0, 
+            ng0 = ng0, nv0 = nv0, nobs = nobs0, nea0 = nea0, 
+            nmes0 = nmes0, idiag = idiag0, nwg0 = nwg0, ncor0 = ncor0, 
+            npm0 = NPM, fix0 = fix0, nfix0 = nfix, bfix0 = bfix)
+        out <- list(conv = res$istop, V = res$v, best = res$b, 
+            ppi2 = rep(NA, ns0 * ng0), predRE = rep(NA, ns0 * 
+                nea0 * (1 + ng0)), varRE = rep(NA, ns0 * nea0 * 
+                (nea0 + 1)/2), resid_m = rep(NA, nobs0), resid_ss = rep(NA, 
+                nobs0), pred_m_g = rep(NA, nobs0 * ng0), pred_ss_g = rep(NA, 
+                nobs0 * ng0), gconv = c(res$ca, res$cb, res$rdm), 
+            niter = res$ni, loglik = res$fn.value)
+    }
+    if (out$conv %in% c(1, 2, 3)) {
+        estim0 <- 0
+        ll <- 0
+        ppi0 <- rep(0, ns0 * ng0)
+        resid_m <- rep(0, nobs0)
+        resid_ss <- rep(0, nobs0)
+        pred_m_g <- rep(0, nobs0 * ng0)
+        pred_ss_g <- rep(0, nobs0 * ng0)
+        predRE <- rep(0, ns0 * nea0 * (1 + ng0))
+        varRE <- rep(0, ns0 * nea0 * (nea0 + 1)/2)
+        post <- .Fortran(C_loglikhlme, as.double(Y0), as.double(X0), 
+            as.integer(prior0), as.double(pprior0), as.integer(idprob0), 
+            as.integer(idea0), as.integer(idg0), as.integer(idcor0), 
+            as.integer(ns0), as.integer(ng0), as.integer(nv0), 
+            as.integer(nobs0), as.integer(nea0), as.integer(nmes0), 
+            as.integer(idiag0), as.integer(nwg0), as.integer(ncor0), 
+            as.integer(NPM), as.double(out$best), ppi = as.double(ppi0), 
+            resid_m = as.double(resid_m), resid_ss = as.double(resid_ss), 
+            pred_m_g = as.double(pred_m_g), pred_ss_g = as.double(pred_ss_g), 
+            predRE = as.double(predRE), varRE = as.double(varRE), 
+            as.integer(fix0), as.integer(nfix), as.double(bfix), 
+            as.integer(estim0), loglik = as.double(ll))
+        out$ppi2 <- post$ppi
+        out$predRE <- post$predRE
+        out$varRE <- post$varRE
+        out$resid_m <- post$resid_m
+        out$resid_ss <- post$resid_ss
+        out$pred_m_g <- post$pred_m_g
+        out$pred_ss_g <- post$pred_ss_g
+    }
+    best <- rep(NA, length(fix0))
+    best[which(fix0 == 0)] <- out$best
+    best[which(fix0 == 1)] <- bfix
+    names(best) <- names_best
+    out$best <- best
+    NPM <- NPM + nfix
+    if (length(posfix)) {
+        if (out$conv == 3) {
+            mr <- NPM - sum(pbH0) - length(posfix)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(NA, NPM, NPM)
+            V[setdiff(1:NPM, c(which(pbH0 == 1), posfix)), setdiff(1:NPM, 
+                c(which(pbH0 == 1), posfix))] <- Vr
+            V[, posfix] <- 0
+            V[posfix, ] <- 0
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+        else {
+            mr <- NPM - length(posfix)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(0, NPM, NPM)
+            V[setdiff(1:NPM, posfix), setdiff(1:NPM, posfix)] <- Vr
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+    }
+    else {
+        if (out$conv == 3) {
+            mr <- NPM - sum(pbH0)
+            Vr <- matrix(0, mr, mr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            Vr <- t(Vr)
+            Vr[upper.tri(Vr, diag = TRUE)] <- out$V[1:(mr * (mr + 
+                1)/2)]
+            V <- matrix(NA, NPM, NPM)
+            V[setdiff(1:NPM, which(pbH0 == 1)), setdiff(1:NPM, 
+                which(pbH0 == 1))] <- Vr
+            V <- V[upper.tri(V, diag = TRUE)]
+        }
+        else {
+            V <- out$V
+        }
+    }
+    Cholesky <- rep(0, (nea0 * (nea0 + 1)/2))
+    if (idiag0 == 0 & NVC > 0) {
+        Cholesky[1:NVC] <- out$best[(NPROB + NEF + 1):(NPROB + 
+            NEF + NVC)]
+        U <- matrix(0, nrow = nea0, ncol = nea0)
+        U[upper.tri(U, diag = TRUE)] <- Cholesky[1:NVC]
+        z <- t(U) %*% U
+        out$best[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- z[upper.tri(z, 
+            diag = TRUE)]
+    }
+    if (idiag0 == 1 & NVC > 0) {
+        id <- 1:nea0
+        indice <- rep(id + id * (id - 1)/2)
+        Cholesky[indice] <- out$best[(NPROB + NEF + 1):(NPROB + 
+            NEF + nea0)]
+        out$best[(NPROB + NEF + 1):(NPROB + NEF + NVC)] <- out$best[(NPROB + 
+            NEF + 1):(NPROB + NEF + NVC)]^2
+    }
+    predRE <- NULL
+    classpredRE <- NULL
+    if (nea0 > 0) {
+        namesRE <- nom.X0[idea0 != 0]
+        predRE <- matrix(out$predRE[1:(ns0 * nea0)], ncol = nea0, 
+            byrow = TRUE)
+        predRE <- data.frame(INDuniq, predRE)
+        colnames(predRE) <- c(nom.subject, namesRE)
+        classpredRE <- matrix(out$predRE[-c(1:(ns0 * nea0))], 
+            ncol = nea0, byrow = TRUE)
+        classpredRE <- data.frame(rep(INDuniq, each = ng0), rep(1:ng0, 
+            ns0), classpredRE)
+        colnames(classpredRE) <- c(nom.subject, "class", namesRE)
+    }
+    if (ng0 > 1) {
+        ppi <- matrix(out$ppi2, ncol = ng0, byrow = TRUE)
+    }
+    else {
+        ppi <- matrix(rep(1, ns0), ncol = ng0)
+    }
+    chooseClass <- function(ppi) {
+        res <- which.max(ppi)
+        if (!length(res)) 
+            res <- 0
+        return(res)
+    }
+    classif <- apply(ppi, 1, chooseClass)
+    if (any(!is.finite(ppi))) {
+        classif <- rep(NA, ns0)
+        iok <- which(is.finite(ppi[, 1]))
+        classif[iok] <- apply(ppi[iok, , drop = FALSE], 1, which.max)
+    }
+    ppi <- data.frame(INDuniq, classif, ppi)
+    temp <- paste("prob", 1:ng0, sep = "")
+    colnames(ppi) <- c(nom.subject, "class", temp)
+    rownames(ppi) <- 1:ns0
+    pred_m_g <- matrix(out$pred_m_g, nrow = nobs0)
+    pred_ss_g <- matrix(out$pred_ss_g, nrow = nobs0)
+    pred_m <- Y0 - out$resid_m
+    pred_ss <- Y0 - out$resid_ss
+    pred <- data.frame(IND, pred_m, out$resid_m, pred_ss, out$resid_ss, 
+        Y0, pred_m_g, pred_ss_g)
+    temp <- paste("pred_m", 1:ng0, sep = "")
+    temp1 <- paste("pred_ss", 1:ng0, sep = "")
+    colnames(pred) <- c(nom.subject, "pred_m", "resid_m", "pred_ss", 
+        "resid_ss", "obs", temp, temp1)
+    if (!is.null(var.time)) {
+        pred <- data.frame(IND, pred_m, out$resid_m, pred_ss, 
+            out$resid_ss, Y0, pred_m_g, pred_ss_g, timeobs)
+        colnames(pred) <- c(nom.subject, "pred_m", "resid_m", 
+            "pred_ss", "resid_ss", "obs", temp, temp1, var.time)
+    }
+    if (!("intercept" %in% nom.X0)) 
+        X0.names2 <- X0.names2[-1]
+    levelsdata <- vector("list", length(X0.names2))
+    levelsfixed <- vector("list", length(X0.names2))
+    levelsrandom <- vector("list", length(X0.names2))
+    levelsmixture <- vector("list", length(X0.names2))
+    levelsclassmb <- vector("list", length(X0.names2))
+    names(levelsdata) <- X0.names2
+    names(levelsfixed) <- X0.names2
+    names(levelsrandom) <- X0.names2
+    names(levelsmixture) <- X0.names2
+    names(levelsclassmb) <- X0.names2
+    for (v in X0.names2) {
+        if (v == "intercept") 
+            next
+        if (is.factor(data[, v])) {
+            levelsdata[[v]] <- levels(data[, v])
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            fixed))) {
+            levelsfixed[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            random))) {
+            levelsrandom[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            mixture))) {
+            levelsmixture[[v]] <- levels(as.factor(data[, v]))
+        }
+        if (length(grep(paste("factor\\(", v, "\\)", sep = ""), 
+            classmb))) {
+            levelsclassmb[[v]] <- levels(as.factor(data[, v]))
+        }
+    }
+    levels <- list(levelsdata = levelsdata, levelsfixed = levelsfixed, 
+        levelsrandom = levelsrandom, levelsmixture = levelsmixture, 
+        levelsclassmb = levelsclassmb)
+    cost <- proc.time() - ptm
+    res <- list(ns = ns0, ng = ng0, idea0 = idea0, idprob0 = idprob0, 
+        idg0 = idg0, idcor0 = idcor0, loglik = out$loglik, best = out$best, 
+        V = V, gconv = out$gconv, conv = out$conv, call = cl, 
+        niter = out$niter, N = N, idiag = idiag0, pred = pred, 
+        pprob = ppi, predRE = predRE, classpredRE = classpredRE, 
+        varRE = out$varRE, Xnames = nom.X0, Xnames2 = X0.names2, 
+        cholesky = Cholesky, na.action = na.action, AIC = 2 * 
+            (length(out$best) - length(posfix) - out$loglik), 
+        BIC = (length(out$best) - length(posfix)) * log(ns0) - 
+            2 * out$loglik, data = datareturn, wRandom = wRandom, 
+        b0Random = b0Random, levels = levels, var.time = var.time, 
+        runtime = cost[3])
+    class(res) <- c("hlme")
+    if (verbose == TRUE) 
+        cat("The program took", round(cost[3], 2), "seconds \n")
+    res
+})(fixed = engagement_score ~ window_90d + I(window_90d^2), mixture = ~window_90d + 
+    I(window_90d^2), random = ~window_90d, subject = "subject_id", 
+    ng = 5, verbose = TRUE)
+ 
+Statistical Model: 
+     Dataset: NULL 
+     Number of subjects: 48942 
+     Number of observations: 397832 
+     Number of latent classes: 5 
+     Number of parameters: 23  
+ 
+Iteration process: 
+     Convergence criteria satisfied 
+     Number of iterations:  149 
+     Convergence criteria: parameters= 1.8e-10 
+                         : likelihood= 2.1e-08 
+                         : second derivatives= 9e-10 
+ 
+Goodness-of-fit statistics: 
+     maximum log-likelihood: -1033813.99  
+     AIC: 2067673.99  
+     BIC: 2067876.35  
+ 
+ 
+Maximum Likelihood Estimates: 
+ 
+Fixed effects in the class-membership model:
+(the class of reference is the last class) 
+
+                     coef      Se     Wald p-value
+intercept class1  1.56726 0.58462    2.681 0.00734
+intercept class2  4.31717 0.07740   55.778 0.00000
+intercept class3  1.98838 0.06643   29.934 0.00000
+intercept class4  1.70335 0.06643   25.643 0.00000
+
+Fixed effects in the longitudinal model:
+
+                      coef      Se     Wald p-value
+intercept class1   3.67904 0.22912   16.057 0.00000
+intercept class2   3.67903 0.02334  157.618 0.00000
+intercept class3  18.02477 0.08949  201.423 0.00000
+intercept class4   6.05888 0.10456   57.948 0.00000
+intercept class5  13.72920 0.29836   46.016 0.00000
+window_90d class1 -0.81675 0.08706   -9.382 0.00000
+window_90d class2 -0.81674 0.00806 -101.289 0.00000
+window_90d class3 -5.63216 0.03505 -160.682 0.00000
+window_90d class4 -0.27578 0.03892   -7.086 0.00000
+window_90d class5  0.46913 0.09608    4.883 0.00000
+I(...) class1      0.05931 0.00671    8.841 0.00000
+I(...) class2      0.05931 0.00067   88.875 0.00000
+I(...) class3      0.42086 0.00333  126.438 0.00000
+I(...) class4      0.04868 0.00391   12.463 0.00000
+I(...) class5      0.04597 0.00926    4.966 0.00000
+
+
+Variance-covariance matrix of the random-effects:
+           intercept window_90d
+intercept    5.62443           
+window_90d  -0.49825    0.04777
+
+                             coef      Se
+Residual standard error:  2.86028 0.00372
+ 
+  -> Saved: lcmm_model_summaries.txt 
+
+Model comparison table: 
+   G   loglik     AIC     BIC   entropy
+m1 1 -1059786 2119586 2119648 1.0000000
+m2 2 -1042769 2085559 2085656 0.9375081
+m3 3 -1036799 2073629 2073761 0.9277725
+m4 4 -1033814 2067666 2067833 0.8975032
+m5 5 -1033814 2067674 2067876 0.7913513 
+  -> Saved: lcmm_model_comparison.csv 
+
+Posterior probabilities for m4: 
+
+-- Head -- 
+[[1]]
+   class1  class2   class3 class4
+N 1833.00 3797.00 42951.00 361.00
+%    3.75    7.76    87.76   0.74
+
+[[2]]
+        prob1  prob2  prob3  prob4
+class1 0.8685 0.0056 0.1151 0.0108
+class2 0.0136 0.8916 0.0695 0.0253
+class3 0.0282 0.0096 0.9603 0.0019
+class4 0.0521 0.0361 0.0150 0.8969
+
+[[3]]
+         class1 class2 class3 class4
+prob>0.7  80.36  86.38  96.98  84.21
+prob>0.8  70.87  77.64  94.86  78.39
+prob>0.9  59.57  65.87  89.02  71.47
+ 
+
+-- Summary -- 
+     Length Class  Mode   
+[1,]  8     -none- numeric
+[2,] 16     -none- numeric
+[3,] 12     -none- numeric 
+  -> Saved: lcmm_m4_posterior_probs.csv 
+  -> Saved: lcmm_m4_posterior_summary.csv 
